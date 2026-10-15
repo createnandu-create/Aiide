@@ -1,0 +1,115 @@
+name: Build Droidide Pro APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "*.zip"
+      - "droidide_pro/**"
+      - "app/**"
+      - "src/**"
+      - "package.json"
+permissions:
+  contents: read
+jobs:
+  android-apk:
+    name: Compile Android Debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Extract source ZIP automatically
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile, shutil, sys
+          work=Path.cwd()
+          archives=[work / "droidide_apk_build.zip", work / "droidide_pro.zip"]
+          if (work / "package.json").exists():
+              root=work
+          else:
+              archives=[p for p in archives if p.is_file()]
+              if not archives:
+                  raise SystemExit("Source ZIP missing. Repository needs droidide_apk_build.zip or droidide_pro.zip in its root.")
+              extract=work / "_project_extracted"
+              extract.mkdir(exist_ok=True)
+              with zipfile.ZipFile(archives[0]) as z:
+                  for item in z.infolist():
+                      dest=(extract/item.filename).resolve()
+                      if not dest.is_relative_to(extract.resolve()):
+                          raise SystemExit("Unsafe ZIP path")
+                  z.extractall(extract)
+              candidates=sorted(extract.rglob("package.json"), key=lambda x:len(x.parts))
+              if not candidates: raise SystemExit("No Expo package.json found in ZIP")
+              root=candidates[0].parent
+          out=work/"_build_source"
+          if root!=out:
+              shutil.copytree(root,out,dirs_exist_ok=True,ignore=shutil.ignore_patterns(".git","node_modules","android","ios"))
+          print("Selected project:",root)
+          print("Source files:",len(list(out.rglob("*"))))
+          PY
+      - name: Generate default icons if missing
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct,zlib
+          base=Path("_build_source/assets")
+          base.mkdir(exist_ok=True)
+          def png(w,h,color):
+              raw=b''.join(b'\x00'+bytes(color)*w for _ in range(h))
+              def chunk(t,d):return struct.pack(">I",len(d))+t+d+struct.pack(">I",zlib.crc32(t+d)&0xffffffff)
+              return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack(">IIBBBBB",w,h,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(raw))+chunk(b'IEND',b'')
+          for name,size,color in [
+              ("icon.png",1024,(31,85,170)),
+              ("android-icon-foreground.png",1024,(31,85,170)),
+              ("android-icon-background.png",1024,(235,242,255)),
+              ("android-icon-monochrome.png",1024,(31,85,170)),
+              ("favicon.png",128,(31,85,170)),
+          ]:
+              path=base/name
+              if not path.exists():path.write_bytes(png(size,size,color))
+          PY
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android build tools
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - name: Install app dependencies
+        working-directory: _build_source
+        run: |
+          corepack enable
+          corepack prepare yarn@4.13.0 --activate
+          yarn install --no-immutable
+      - name: Generate Android native sources
+        working-directory: _build_source
+        env:
+          CI: "1"
+          EXPO_NO_TELEMETRY: "1"
+        run: npx expo prebuild --platform android --no-install
+      - name: Compile debug APK
+        working-directory: _build_source/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Verify generated APK
+        shell: bash
+        run: |
+          test -s _build_source/android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum _build_source/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload downloadable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: droidide-pro-debug-apk
+          path: _build_source/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
