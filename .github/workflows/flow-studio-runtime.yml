@@ -1,0 +1,44 @@
+name: Flow Studio - Real MP4 Emulator Smoke Test
+on:
+  push:
+    branches:
+      - flow-studio-apk-test
+    paths:
+      - 'flow-studio-test/**'
+      - '.github/workflows/flow-studio-runtime.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mp4-emulator:
+    name: Verify AVC video actually plays
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install SDK components
+        run: |
+          SDKM="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKM"
+          "$SDKM" 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+      - name: Enable hardware virtualization
+        run: |
+          if test -e /dev/kvm; then sudo chmod 666 /dev/kvm; fi
+      - name: Launch Android emulator and render MP4
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-boot-timeout: 600
+          emulator-options: '-no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim'
+          script: cd flow-studio-test && gradle connectedDebugAndroidTest --no-daemon --stacktrace
