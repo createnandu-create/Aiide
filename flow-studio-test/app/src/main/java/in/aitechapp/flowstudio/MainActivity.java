@@ -41,7 +41,7 @@ public class MainActivity extends Activity {
   private void addGap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
   private void addTitle(LinearLayout l,String s){TextView t=text(s,24,INK);t.setTypeface(null,1);l.addView(t);}
   private Button button(String label,Runnable action){
-    Button b=new Button(this);b.setText(label);b.setTextColor(INK);b.setTextAllCaps(false);b.setTextSize(13);b.setOnClickListener(v->action.run());return b;
+    Button b=new Button(this);b.setText(label);b.setTextColor(INK);b.setTextSize(13);b.setOnClickListener(v->action.run());return b;
   }
   private LinearLayout card(LinearLayout host){
     LinearLayout c=vertical();c.setPadding(dp(13),dp(10),dp(13),dp(12));
