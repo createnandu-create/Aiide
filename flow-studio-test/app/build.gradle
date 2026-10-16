@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'in.aitechapp.flowstudio'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'in.aitechapp.flowstudio'
+        minSdk 26
+        targetSdk 35
+        versionCode 4
+        versionName '0.1.3-test'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
