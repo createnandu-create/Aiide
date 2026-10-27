@@ -1,0 +1,35 @@
+name: Telugu Matalu native Android
+on:
+  push:
+    branches: [telugu-matalu-native]
+    paths: ["native/**", ".github/workflows/telugu-native.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Ensure SDK packages
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Native transliteration tests
+        run: |
+          mkdir -p /tmp/telugu-tests
+          javac -encoding UTF-8 -d /tmp/telugu-tests native/src/in/aitechapp/telugumatalu/Transliterator.java native/test/EngineTest.java
+          java -cp /tmp/telugu-tests EngineTest native/assets/words.tsv
+      - name: Compile and verify native APK
+        run: bash native/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: telugu-matalu-native-verification-apk
+          path: |
+            native/build/TeluguMatalu-2.1.0-test.apk
+            native/build/SHA256SUMS.txt
+            native/build/alignment.txt
+          if-no-files-found: error
