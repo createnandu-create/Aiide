@@ -30,30 +30,17 @@ small,.mini{font-size:12px;color:var(--dim)}a{color:#98caff}.dl{display:block;ma
 </style>
 </head>
 <body><main>
-<header><div class="pill">PUBLIC TEST • LOCAL-FIRST • NO API KEY</div><h1>తెలుగు Voice Studio</h1><p class="sub">ముందుగా మీ ఫోన్‌లో పనిచేసే Text-to-Speechని పరీక్షించండి. AI WAV ప్రయోగం కూడా ఉంది.</p></header>
+<header><div class="pill">PUBLIC TEST • LOCAL-FIRST • NO API KEY</div><h1>తెలుగు Voice Studio</h1><p class="sub">మొదట Telugu AI model డౌన్‌లోడ్ చేయండి. తర్వాత internet OFF చేసి WAV తయారు చేసి పరీక్షించండి. Android Device TTS అవసరం లేదు.</p><div style="display:flex;justify-content:center"><a class="dl" href="#offline-ai" style="display:inline-block;padding:9px 20px;margin:5px 0 0">⬇ Offline AI Model → Download / Generate</a></div></header>
 <section class="card">
 <h2>1. Telugu Text</h2>
 <label for="text">తెలుగులో వ్రాయండి</label>
 <textarea id="text" spellcheck="false" placeholder="నమస్కారం! తెలుగు వాయిస్ పరీక్షకు స్వాగతం.">నమస్కారం! ఇది తెలుగు వాయిస్ పరీక్ష. మీరు ఎలా ఉన్నారు? ఈ రోజు వాతావరణం చాలా బాగుంది.</textarea>
 <div class="stats"><span id="chars">0 characters</span><span id="pieces">0 parts</span></div>
-<div class="note">గమనిక: Device voice = మీ ఫోన్‌లో ఉన్న TTS engine. ఇది voice cloning కాదు. Offlineగా చదవాలంటే Telugu voice data కూడా ఫోన్‌లో offline అందుబాటులో ఉండాలి.</div>
+<div class="note">మీ ఫోన్ Device TTSలో synthesis-failed వచ్చినా Piper AIతో పరీక్షించవచ్చు. ఇది రెండూ వేర్వేరు engines. ఇది మీ సొంత గొంతు cloning కాదు.</div>
 </section>
-<section class="card">
-<h2>2. Device Voice — Basic Test</h2>
-<p class="sub">AI server అవసరం లేకుండా browser మాట్లాడే విధానం. WAV/MP3 export ఈ modeలో ఉండదు.</p>
-<label for="voices">ఫోన్‌లో అందుబాటులో ఉన్న Voice</label>
-<select id="voices"><option value="">Detecting voices...</option></select>
-<div class="grid">
-<div><label for="rate">Speed <span id="rateVal">1.0×</span></label><input id="rate" type="range" min="0.7" max="1.4" value="1" step="0.1"></div>
-<div><label for="pitch">Pitch <span id="pitchVal">1.0</span></label><input id="pitch" type="range" min="0.7" max="1.3" value="1" step="0.1"></div>
-</div>
-<button id="devicePlay" class="primary" type="button">▶ Read Telugu on my phone</button>
-<div class="actions"><button id="pause" type="button">Pause</button><button id="resume" type="button">Resume</button><button id="stop" class="danger" type="button">Stop</button></div>
-<div class="status" id="deviceStatus" role="status">Checking browser speech support...</div>
-</section>
-<section class="card">
-<div class="pill">OPTIONAL • EXPERIMENTAL</div>
-<h2>3. Local AI → WAV Download</h2>
+<section class="card" id="offline-ai">
+<div class="pill">LOCAL PIPER AI • FIRST CHOICE</div>
+<h2>2. Offline Telugu AI → WAV Download</h2>
 <p>Open-source <strong>Piper ONNX</strong> తెలుగు voice. మొదటిసారి సుమారు 60–100+ MB model/runtime download అవ్వాలి. తర్వాత పరికరంలో inference జరుగుతుంది. మీ గొంతు క్లోనింగ్ కాదు.</p>
 <label for="model">Telugu AI Voice</label>
 <select id="model">
@@ -61,8 +48,8 @@ small,.mini{font-size:12px;color:var(--dim)}a{color:#98caff}.dl{display:block;ma
 <option value="maya">Maya — Telugu (check individual dataset terms)</option>
 </select>
 <button id="aiInstall" class="secondary" type="button" style="width:100%">⬇ 1. Install offline Telugu AI model (first time online)</button>
-<div id="installStatus" class="status" role="status">First setup downloads approximately 95 MB of Telugu model and runtime. Keep the page open; this does not clone your voice.</div>
-<button id="aiMake" class="primary" type="button">▶ 2. Generate local AI voice → WAV</button>
+<div id="installStatus" class="status" role="status">Checking whether Telugu AI model is already installed…</div>
+<button id="aiMake" class="primary" type="button">▶ 2. Generate Offline Telugu WAV (no Device TTS)</button>
 <button id="aiCancel" type="button">Cancel between parts</button>
 <progress id="aiProgress" class="progress" value="0" max="100"></progress>
 <div id="aiStatus" class="status" role="status">Not tested on your phone yet. First use requires internet and storage. Try with one or two short Telugu sentences first.</div>
@@ -73,13 +60,28 @@ small,.mini{font-size:12px;color:var(--dim)}a{color:#98caff}.dl{display:block;ma
 <p class="mini">Padmavathi model: <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/te/te_IN/padmavathi/medium" target="_blank" rel="noopener">rhasspy/piper-voices</a>; its dataset is CC BY 4.0. Inference depends on third-party Piper ONNX, espeak-ng WASM and onnxruntime-web. The model files are streamed to your browser; some hosts may not proxy model downloads, so cross-origin restrictions can prevent installation. Offline generation must be tested on your phone. Use only voices you are entitled to use.</p></details>
 </section>
 <section class="card">
-<h2>4. Own voice sample recording</h2>
+<details><summary>Optional: Android Device Voice (may fail on some phones)</summary>
+<h2>Android Device Voice — Basic Test</h2>
+<p class="sub">AI server అవసరం లేకుండా browser మాట్లాడే విధానం. WAV/MP3 export ఈ modeలో ఉండదు.</p>
+<label for="voices">ఫోన్‌లో అందుబాటులో ఉన్న Voice</label>
+<select id="voices"><option value="">Detecting voices...</option></select>
+<div class="grid">
+<div><label for="rate">Speed <span id="rateVal">1.0×</span></label><input id="rate" type="range" min="0.7" max="1.4" value="1" step="0.1"></div>
+<div><label for="pitch">Pitch <span id="pitchVal">1.0</span></label><input id="pitch" type="range" min="0.7" max="1.3" value="1" step="0.1"></div>
+</div>
+<button id="devicePlay" class="primary" type="button">▶ Read Telugu on my phone</button>
+<div class="actions"><button id="pause" type="button">Pause</button><button id="resume" type="button">Resume</button><button id="stop" class="danger" type="button">Stop</button></div>
+<div class="status" id="deviceStatus" role="status">Checking browser speech support...</div>
+</details>
+</section>
+<section class="card">
+<h2>3. Record original voice (not cloning)</h2>
 <p class="sub">మీరు మీ సొంత గొంతును రికార్డ్ చేసి డౌన్‌లోడ్ చేసుకోవచ్చు. దీన్ని AI క్లోన్‌గా చూపించము.</p>
 <div class="grid"><button id="recStart" type="button">● Record my sample</button><button id="recStop" class="danger" type="button" disabled>Stop recording</button></div>
 <div id="recStatus" class="status">Microphone permission is asked only when recording starts.</div>
 <audio id="recAudio" controls hidden></audio><a id="recDownload" class="dl" hidden>Download my recording</a>
 </section>
-<section class="card"><h2>5. Voice cloning status</h2>
+<section class="card"><h2>4. Voice cloning status</h2>
 <p class="note">మీ screenshotలోని “clone server returned an error” సమస్య పరిష్కారమైందని ఇక్కడ ప్రకటించడం లేదు. Public GPU voice cloning ఇంకా అందుబాటులో లేదు. మీ వాయిస్‌ను ఇతరులు అనుమతి లేకుండా క్లోన్ చేయకూడదు.</p>
 <p><a href="./online.html">Previous cloud-cloning test (experimental)</a></p>
 </section>
@@ -159,6 +161,24 @@ async function savedOrNetwork(url){
   try{const c=await caches.open(OFFLINE_CACHE);const hit=await c.match(url);if(hit)return hit;}catch(e){}
   return fetch(url);
 }
+async function checkOfflineInstall(){
+  try{
+    const c=await caches.open(OFFLINE_CACHE),assets=offlineAssets($("model").value);
+    const present=await Promise.all(assets.map(url=>c.match(url)));
+    const count=present.filter(Boolean).length;
+    if(count===assets.length){
+      $("installStatus").textContent="✓ Telugu AI MODEL INSTALLED ("+count+"/"+assets.length+" files cached). You can turn off internet and tap Generate Offline Telugu WAV. Mobile browsers may clear cache later.";
+      $("aiInstall").textContent="✓ AI model installed — reinstall/check";
+    }else{
+      $("installStatus").textContent="Offline model not ready: "+count+"/"+assets.length+" files cached. Tap Install offline Telugu AI model once with internet ON.";
+      $("aiInstall").textContent="⬇ 1. Download offline Telugu AI model";
+    }
+  }catch(e){
+    $("installStatus").textContent="Cannot check model cache: "+e.message+". Use Chrome and permit storage.";
+  }
+}
+$("model").addEventListener("change",checkOfflineInstall);
+checkOfflineInstall();
 $("aiInstall").onclick=async()=>{
   const b=$("aiInstall");b.disabled=true;
   try{
@@ -175,7 +195,8 @@ $("aiInstall").onclick=async()=>{
       if(!res.ok)throw Error("HTTP "+res.status+" from "+url);
       await c.put(url,res.clone());
     }
-    $("installStatus").textContent="MODEL DOWNLOADED. Reload this page once, turn off mobile data/Wi-Fi, then Generate local AI → WAV. Storage cleanup may erase cached files.";
+    await checkOfflineInstall();
+    $("installStatus").textContent="✓ MODEL DOWNLOADED. Reload once, turn off mobile data/Wi-Fi, then Generate Offline Telugu WAV. Storage cleanup may erase cached files.";
   }catch(err){
     $("installStatus").textContent="Download failed — offline mode NOT installed: "+(err?.message||String(err))+". Retry when online.";
   }finally{b.disabled=false;}
