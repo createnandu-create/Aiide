@@ -1,0 +1,31 @@
+name: Verify public offline Telugu website
+on:
+  push:
+    branches: [telugu-voice-testing]
+    paths: ['.github/workflows/verify-offline-web.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Probe public Cloudflare homepage
+        run: |
+          set -eux
+          curl -fSL --retry 2 --max-time 40 -o /tmp/page.html https://telugu-voice-offline-pwa.smartapps-voice.workers.dev/
+          grep -F 'Install offline Telugu AI model' /tmp/page.html
+      - name: Confirm health route and offline app files
+        run: |
+          set -eux
+          curl -fSL --max-time 30 https://telugu-voice-offline-pwa.smartapps-voice.workers.dev/health
+          curl -fSL --max-time 30 https://telugu-voice-offline-pwa.smartapps-voice.workers.dev/sw.js -o /tmp/sw.js
+          grep -F 'telugu-voice-local-v1' /tmp/sw.js
+          curl -fSL --max-time 30 https://telugu-voice-offline-pwa.smartapps-voice.workers.dev/manifest.webmanifest -o /tmp/manifest.json
+          python3 -c "import json; x=json.load(open('/tmp/manifest.json')); assert x['display']=='standalone'"
+      - name: Check Telugu model metadata proxy
+        run: |
+          set -eux
+          curl -fSL --retry 1 --max-time 50 -o /tmp/telugu-voice.json https://telugu-voice-offline-pwa.smartapps-voice.workers.dev/models/padmavathi/medium/te_IN-padmavathi-medium.onnx.json
+          python3 -c "import json; m=json.load(open('/tmp/telugu-voice.json'));assert m['language']['code']=='te_IN'"
