@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f2e9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Telugu Voice Studio · Testing</title>
+<style>
+  /* Layout: iOS-style grouped cards on a cream dot-grid ground with slow drifting colour orbs; one column, large radii */
+  :root {
+    --bg:#f6f2e9; --dot:rgba(60,50,30,.10); --card:#fffdf8; --fill:#f1ece0; --ink:#1d1b16; --mut:#7a7466; --line:rgba(60,50,30,.12);
+    --acc:#0a7cff; --acc-ink:#ffffff; --ok:#1f9d6b; --err:#d92d20; --orb1:#ffb86b; --orb2:#7fb2ff;
+    --r-lg:24px; --r-md:16px; --shadow:0 1px 2px rgba(60,50,30,.06), 0 8px 24px rgba(60,50,30,.07);
+    --font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Noto Sans Telugu", "Noto Sans", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14130f; --dot:rgba(255,245,220,.07); --card:#1e1c17; --fill:#2a2720; --ink:#f4efe3; --mut:#a39c8b; --line:rgba(255,245,220,.12); --acc:#4da3ff; --acc-ink:#0b1320; --ok:#4cd6a4; --err:#ff8a80; --orb1:#b8651a; --orb2:#2b5fb8; --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35); color-scheme:dark; }
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; font-family:var(--font); color:var(--ink); line-height:1.45; background-color:var(--bg); min-height:100vh; overflow-x:hidden;
+    background-image:radial-gradient(circle, var(--dot) 1.2px, transparent 1.6px); background-size:20px 20px; }
+  .orb { position:fixed; width:62vmax; height:62vmax; border-radius:50%; filter:blur(70px); opacity:.30; z-index:0; pointer-events:none; }
+  .orb.a { background:var(--orb1); top:-26vmax; left:-22vmax; animation:driftA 18s ease-in-out infinite alternate; }
+  .orb.b { background:var(--orb2); bottom:-30vmax; right:-24vmax; animation:driftB 22s ease-in-out infinite alternate; }
+  @keyframes driftA { to { transform:translate(18vmax, 14vmax) scale(1.15); } }
+  @keyframes driftB { to { transform:translate(-16vmax, -12vmax) scale(1.2); } }
+  .wrap { position:relative; z-index:1; max-width:640px; margin:0 auto; padding:max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  h1 { font-size:2.2rem; font-weight:800; letter-spacing:-.02em; margin:14px 0 2px; line-height:1.1; }
+  h1 .ch { display:inline-block; opacity:0; transform:translateY(18px) scale(.8) rotate(-4deg); filter:blur(6px); animation:chIn .7s cubic-bezier(.2,.9,.3,1.3) forwards, wave 3.2s ease-in-out infinite; animation-delay:calc(var(--i) * 55ms + 100ms), calc(var(--i) * 55ms + 1.4s); }
+  @keyframes chIn { to { opacity:1; transform:none; filter:none; } }
+  @keyframes wave { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
+  .sub { margin:0 0 18px; color:var(--mut); font-size:.98rem; animation:fadeUp .7s .6s both; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+  .card { background:var(--card); border-radius:var(--r-lg); padding:16px; margin-bottom:14px; box-shadow:var(--shadow); animation:fadeUp .65s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--d, 0) * 110ms + 350ms); transition:transform .3s, box-shadow .3s; }
+  .card:hover { transform:translateY(-2px); }
+  .card h2 { font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--mut); margin:0 0 10px; font-weight:700; }
+  .seg { position:relative; display:grid; grid-template-columns:repeat(3, 1fr); background:var(--fill); border-radius:14px; padding:3px; margin-bottom:14px; }
+  .seg i { position:absolute; top:3px; bottom:3px; left:3px; width:calc((100% - 6px) / 3); background:var(--card); border-radius:11px; box-shadow:0 1px 4px rgba(0,0,0,.18); transition:transform .45s cubic-bezier(.3,1.4,.5,1); }
+  .seg button { position:relative; z-index:1; margin:0; padding:10px 4px; background:none; border:0; color:var(--mut); font-size:.88rem; font-weight:600; border-radius:11px; transition:color .25s, transform .2s; }
+  .seg button.on { color:var(--ink); } .seg button:active { transform:scale(.94); }
+  .panel-in { animation:fadeUp .45s cubic-bezier(.2,.8,.2,1) both; }
+  .group { background:var(--fill); border-radius:var(--r-md); overflow:hidden; }
+  .rowf { display:flex; align-items:center; gap:10px; padding:10px 14px; min-height:48px; animation:fadeUp .5s cubic-bezier(.2,.8,.2,1) both; }
+  .rowf:nth-child(2) { animation-delay:.06s; } .rowf:nth-child(3) { animation-delay:.12s; } .rowf:nth-child(4) { animation-delay:.18s; }
+  .rowf + .rowf { border-top:1px solid var(--line); }
+  .rowf > span { flex:0 0 38%; font-size:.95rem; }
+  .rowf select, .rowf input[type=text], .rowf input[type=password] { flex:1; min-width:0; border:0; background:transparent; color:var(--acc); font-size:16px; font-family:inherit; padding:6px 0; appearance:none; -webkit-appearance:none; direction:rtl; text-align:right; text-align-last:right; }
+  .rowf input[type=text], .rowf input[type=password] { direction:ltr; }
+  .rowf input[type=range] { flex:1; accent-color:var(--acc); }
+  .rowf input[type=checkbox] { margin-left:auto; width:24px; height:24px; accent-color:var(--acc); }
+  .rowf output { min-width:2.8em; text-align:right; color:var(--mut); font-variant-numeric:tabular-nums; font-size:.9rem; white-space:nowrap; }
+  textarea { width:100%; border:0; background:var(--fill); color:var(--ink); border-radius:var(--r-md); padding:14px; font-size:1.15rem; font-family:inherit; min-height:150px; resize:vertical; line-height:1.6; outline:none; transition:box-shadow .25s; }
+  textarea:focus { box-shadow:0 0 0 2px var(--acc); }
+  .meta { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; font-size:.78rem; color:var(--mut); }
+  button { font-family:inherit; touch-action:manipulation; }
+  .chip { position:relative; overflow:hidden; display:inline-flex; align-items:center; padding:7px 13px; border-radius:99px; background:var(--fill); color:var(--acc); font-size:.8rem; font-weight:600; border:0; width:auto; margin:0; transition:transform .15s; }
+  .chip:active { transform:scale(.94); }
+  .btn { position:relative; overflow:hidden; display:block; width:100%; border:0; border-radius:16px; padding:16px; margin-top:12px; font-size:1.05rem; font-weight:700; text-align:center; background:var(--acc); color:var(--acc-ink); transition:transform .15s, opacity .2s, box-shadow .25s; box-shadow:0 6px 18px color-mix(in srgb, var(--acc) 35%, transparent); }
+  .btn:active { transform:scale(.96); }
+  .btn.alt { background:var(--fill); color:var(--acc); box-shadow:none; }
+  .btn.ok { background:color-mix(in srgb, var(--ok) 16%, var(--card)); color:var(--ok); box-shadow:none; }
+  .btn.danger { background:color-mix(in srgb, var(--err) 14%, var(--card)); color:var(--err); box-shadow:none; }
+  .btn:disabled { opacity:.5; }
+  .btn.busy::after { content:""; position:absolute; inset:0; background:linear-gradient(110deg, transparent 30%, rgba(255,255,255,.4) 50%, transparent 70%); background-size:200% 100%; animation:shine 1.1s linear infinite; }
+  @keyframes shine { from { background-position:200% 0; } to { background-position:-200% 0; } }
+  .rip { position:absolute; border-radius:50%; background:rgba(255,255,255,.5); transform:scale(0); animation:rip .65s ease-out forwards; pointer-events:none; }
+  @keyframes rip { to { transform:scale(3.2); opacity:0; } }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .eq { display:flex; gap:5px; align-items:flex-end; height:30px; margin-top:12px; }
+  .eq b { width:6px; border-radius:3px; background:var(--acc); height:100%; transform-origin:bottom; animation:eq 0.9s ease-in-out infinite; }
+  .eq b:nth-child(2){animation-delay:.1s} .eq b:nth-child(3){animation-delay:.2s} .eq b:nth-child(4){animation-delay:.3s} .eq b:nth-child(5){animation-delay:.15s} .eq b:nth-child(6){animation-delay:.25s} .eq b:nth-child(7){animation-delay:.05s}
+  @keyframes eq { 0%,100% { transform:scaleY(.2); } 50% { transform:scaleY(1); } }
+  .bar { height:6px; border-radius:3px; background:var(--fill); overflow:hidden; margin-top:12px; }
+  .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg, var(--acc), var(--ok)); border-radius:3px; transition:width .5s cubic-bezier(.3,1,.5,1); }
+  #status { margin-top:12px; font-size:.95rem; min-height:1.4em; word-break:break-word; }
+  #status.err { color:var(--err); } #status.ok { color:var(--ok); }
+  #status .ch { display:inline-block; opacity:0; animation:chIn .4s forwards; animation-delay:calc(var(--i) * 16ms); }
+  #nowTitle { margin-top:12px; font-weight:700; font-size:.95rem; }
+  canvas#viz { width:100%; height:84px; display:block; border-radius:var(--r-md); background:var(--fill); margin-top:10px; }
+  audio { width:100%; margin-top:12px; }
+  #reader { margin-top:12px; padding:14px; border-radius:var(--r-md); background:var(--fill); font-size:1.1rem; line-height:1.9; }
+  #reader span { transition:color .25s, opacity .25s; opacity:.4; display:inline-block; }
+  #reader span.hot { opacity:1; color:var(--ink); }
+  #reader span.now { color:var(--acc); opacity:1; transform:scale(1.08); }
+  .hist { display:flex; align-items:center; gap:10px; padding:10px 0; animation:fadeUp .4s both; }
+  .hist + .hist { border-top:1px solid var(--line); }
+  .hist div { flex:1; min-width:0; font-size:.88rem; }
+  .hist small { display:block; color:var(--mut); font-size:.72rem; }
+  .hist .btn { width:auto; margin:0; padding:8px 14px; font-size:.85rem; border-radius:12px; }
+  details summary { cursor:pointer; color:var(--mut); font-size:.9rem; font-weight:600; }
+  .hint { display:block; color:var(--mut); margin:8px 2px 0; font-size:.78rem; line-height:1.5; }
+  #dbg { font-size:.7rem; color:var(--mut); word-break:break-all; margin-top:8px; white-space:pre-wrap; }
+  .script { background:var(--fill); border-radius:var(--r-md); padding:12px 14px; margin-top:10px; font-size:1.05rem; line-height:1.8; }
+  .meter { height:8px; border-radius:4px; background:var(--fill); overflow:hidden; margin-top:10px; }
+  .meter i { display:block; height:100%; width:0; background:var(--err); transition:width .08s; }
+  .recOn { animation:pulse 1.1s ease-out infinite; }
+  @keyframes pulse { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--err) 55%, transparent); } 100% { box-shadow:0 0 0 18px transparent; } }
+  .rec { color:var(--err); font-weight:700; }
+  input[type=file] { width:100%; font-size:16px; color:var(--ink); }
+  [hidden] { display:none !important; }
+  html.noanim *, html.noanim *::before, html.noanim *::after { animation:none !important; transition:none !important; }
+  html.noanim h1 .ch, html.noanim #status .ch, html.noanim .card, html.noanim .sub, html.noanim .rowf, html.noanim .hist { opacity:1 !important; transform:none !important; filter:none !important; }
+  @media (max-width:420px) { .two { grid-template-columns:1fr; } h1 { font-size:1.9rem; } .rowf > span { flex-basis:34%; } }
+</style>
+</head>
+<body>
+<div class="orb a"></div><div class="orb b"></div>
+<div class="wrap">
+  <h1 id="title" aria-label="Telugu Voice Studio">Telugu Voice Studio</h1>
+  <p class="sub">Testing branch · తెలుగు వాయిస్ క్లోనింగ్ పరీక్ష</p>
+
+  <div class="card" style="--d:0">
+    <div class="seg" id="seg">
+      <i id="segI"></i>
+      <button type="button" data-e="natural" class="on">Natural</button>
+      <button type="button" data-e="studio">Studio</button>
+      <button type="button" data-e="clone">My voice</button>
+    </div>
+    <div class="group" id="langGroup">
+      <div class="rowf"><span>Language</span><select id="lang"></select></div>
+      <div class="rowf"><span>Auto-detect</span><input type="checkbox" id="auto" checked></div>
+    </div>
+    <span class="hint" id="engineNote"></span>
+
+    <div id="pNatural" style="margin-top:12px" class="panel-in">
+      <div class="group">
+        <div class="rowf"><span>Voice</span><select id="gender"><option value="Female">Female</option><option value="Male">Male</option></select></div>
+        <div class="rowf"><span>Emotion</span>
+          <select id="emotion"><option value="">Neutral</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="anger">Angry</option><option value="fear">Fearful</option><option value="clear">Clear (names, numbers)</option></select></div>
+        <div class="rowf"><span>Expressive</span><input type="range" id="temp" min="0.3" max="1.2" step="0.1" value="0.7"><output id="tempO">0.7</output></div>
+      </div>
+    </div>
+
+    <div id="pStudio" style="margin-top:12px" hidden>
+      <div class="group">
+        <div class="rowf"><span>Speaker</span><select id="speaker"></select></div>
+        <div class="rowf"><span>Style</span>
+          <select id="style"><option value="natural">Natural conversation</option><option value="narration">Calm narration</option><option value="news">News reader</option><option value="expressive">Expressive storytelling</option><option value="happy">Happy</option><option value="sad">Sad</option></select></div>
+        <div class="rowf"><span>Speed</span><select id="pace"><option value="slowly">Slow</option><option value="at a moderate speed" selected>Normal</option><option value="fast">Fast</option></select></div>
+        <div class="rowf"><span>Pitch</span><select id="pitch"><option value="a low-pitched">Low</option><option value="a balanced" selected>Medium</option><option value="a high-pitched">High</option></select></div>
+      </div>
+    </div>
+
+    <div id="pClone" style="margin-top:12px" hidden>
+      <div class="group"><div class="rowf"><span>Clone model</span><select id="cloneModel"><option value="indic">IndicF5 · official GPU demo</option><option value="maya">Maya 2 Native · GPU demo</option><option value="community">IndicF5 · community CPU</option><option value="custom">Custom IndicF5 server</option></select></div></div>
+      <div class="two"><button id="checkServer" class="btn alt" type="button">Check server</button><a id="openDemo" class="btn alt" target="_blank" rel="noopener" href="https://huggingface.co/spaces/ai4bharat/IndicF5">Open original demo ↗</a></div>
+      <span class="hint" id="serverStatus" aria-live="polite">Live check: IndicF5 returned a generation error; Maya returned a GPU quota error. Try from your session or open the original demo. “Reachable” does not mean cloning succeeded.</span>
+      <div class="group"><div class="rowf"><span>Saved voice</span><select id="myVoice"></select></div></div>
+      <div class="two">
+        <button id="newVoice" type="button" class="btn alt">+ New voice</button>
+        <button id="delVoice" type="button" class="btn danger">Delete</button>
+      </div>
+      <div id="newBox" hidden style="margin-top:12px">
+        <div class="group">
+          <div class="rowf"><span>Name</span><input type="text" id="vName" placeholder="My voice"></div>
+          <div class="rowf"><span>Reduce noise</span><input type="checkbox" id="nr"></div>
+        </div>
+        <button id="scriptBtn" type="button" class="btn alt">Show a short script to read</button>
+        <div id="scriptBox" class="script" hidden></div>
+        <div class="two">
+          <button id="recBtn" type="button" class="btn">● Record (up to 30 s)</button>
+          <button id="stopRecBtn" type="button" class="btn danger" disabled>■ Stop</button>
+        </div>
+        <div class="meter" id="meterWrap" hidden><i id="meter"></i></div>
+        <div id="recInfo" class="hint"></div>
+        <label class="hint" for="vFile">Or upload a clip (mp3, wav, m4a, up to 30 s)</label>
+        <input type="file" id="vFile" accept="audio/*" style="margin-top:6px">
+        <audio id="refPlayer" controls hidden></audio>
+        <label class="hint" for="vText">Exact text spoken in the clip (reading the script fills this in)</label>
+        <textarea id="vText" style="min-height:100px;font-size:1rem;margin-top:6px" placeholder="Type exactly what is said in the clip"></textarea>
+        <button id="saveVoice" type="button" class="btn">Save voice</button>
+      </div>
+      <span class="hint">Online cloning with your selected model. Saving a sample does not install a cloning model. Generate sends your clip and text to the Clone server shown in Advanced. The text must match the clip word for word, or the result gets garbled. Only clone voices you have permission to use.</span>
+    </div>
+  </div>
+
+  <div class="card" style="--d:1">
+    <h2>Text</h2>
+    <textarea id="txt" placeholder="Type or paste text here">నమస్కారం! ఇది తెలుగు వాయిస్ పరీక్ష. మీరు ఎలా ఉన్నారు? ఈ రోజు వాతావరణం చాలా బాగుంది.</textarea>
+    <div class="meta"><span id="count">0 characters</span><span id="detected"></span><button id="sample" type="button" class="chip">Insert sample</button></div>
+  </div>
+
+  <div class="card" style="--d:2">
+    <div class="group">
+      <div class="rowf"><span>Sentence pause</span><input type="range" id="gap" min="0" max="1" step="0.05" value="0.3"><output id="gapO">0.30 s</output></div>
+      <div class="rowf"><span>Backup engine</span><input type="checkbox" id="fallback"></div>
+    </div>
+    <button id="go" class="btn">Generate voice online</button>
+    <button id="cancelGen" class="btn danger" hidden>Cancel generation</button>
+    <details style="margin-top:14px"><summary>Device voice · ఆఫ్‌లైన్‌లో చదవండి</summary>
+      <span class="hint">ఫోన్‌లో ఉన్న సాధారణ వాయిస్ మాత్రమే; మీ గొంతు క్లోన్ కాదు. Local voice ఉంటే ఆఫ్‌లైన్‌లో పరీక్షించవచ్చు. ఈ మోడ్‌లో MP3 export ఉండదు.</span>
+      <div class="group"><div class="rowf"><span>Device voice</span><select id="deviceVoice"></select></div></div>
+      <div class="two"><button id="deviceRead" class="btn alt">▶ Read on device</button><button id="deviceStop" class="btn alt">■ Stop reading</button></div>
+      <div id="deviceStatus" class="hint" aria-live="polite"></div>
+    </details>
+    <div class="bar" id="barWrap" hidden><i id="bar"></i></div>
+    <div class="eq" id="eq" hidden><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
+    <div id="status" aria-live="polite"></div>
+
+    <div id="result" hidden>
+      <div id="nowTitle"></div>
+      <canvas id="viz" width="600" height="168"></canvas>
+      <audio id="player" controls preload="auto" playsinline></audio>
+      <div class="two">
+        <button id="playBtn" type="button" class="btn">▶ Play</button>
+        <button id="pauseBtn" type="button" class="btn alt">⏸ Pause</button>
+      </div>
+      <div class="group" style="margin-top:12px">
+        <div class="rowf"><span>Playback speed</span><select id="rate"><option value="0.8">0.8×</option><option value="0.9">0.9×</option><option value="1" selected>1×</option><option value="1.1">1.1×</option><option value="1.25">1.25×</option></select></div>
+      </div>
+      <button id="dl" type="button" class="btn ok">⬇ Download MP3</button>
+      <button id="dlWav" type="button" class="btn alt" hidden>Download WAV</button>
+      <div id="reader"></div>
+    </div>
+  </div>
+
+  <div class="card" style="--d:3"><details><summary>Models checked · పరిశోధన</summary>
+<p class="hint">No model is guaranteed to clone every Telugu voice perfectly. Compare the same 8–10 second clip and short Telugu sentence. Free demo access can change.</p>
+<ul class="hint">
+<li><a href="https://github.com/AI4Bharat/IndicF5" target="_blank" rel="noopener">IndicF5</a> — Telugu cloning; official GPU and community CPU adapters included.</li>
+<li><a href="https://huggingface.co/maya-research/maya2-native" target="_blank" rel="noopener">Maya 2 Native</a> — Telugu cloning, streaming; API adapter included. Apache-2.0 core; component terms apply.</li>
+<li><a href="https://github.com/praxelhq/praxy" target="_blank" rel="noopener">Praxy</a> — Telugu/code-mix cloning; demo returned 503 during this check. Its demo also relies on Modal and an API for code-mix processing.</li>
+<li><a href="https://huggingface.co/SPRINGLab/Indic-Mio" target="_blank" rel="noopener">Indic-Mio</a> — 0.6B Indic model with codec-based cloning; candidate for local evaluation, not connected here.</li>
+<li><a href="https://huggingface.co/k2-fsa/OmniVoice" target="_blank" rel="noopener">OmniVoice</a> — multilingual cloning; Telugu quality and component licences need evaluation, not connected here.</li>
+<li><a href="https://huggingface.co/ai4bharat/indic-parler-tts" target="_blank" rel="noopener">Indic Parler</a> — Telugu narration/style; Studio tab uses a shared demo, not your recorded voice.</li>
+<li><a href="https://huggingface.co/bodhan-ai/indic-speak" target="_blank" rel="noopener">Indic-Speak</a> — Telugu and English mixed narration; custom licence includes hosting restrictions; not an unrestricted open-source replacement.</li>
+</ul><a class="btn alt" href="https://aistudio.google.com/generate-speech" target="_blank" rel="noopener">Try Google AI Studio speech ↗</a>
+<span class="hint">Google speech supports Telugu. Free access has quotas and model/account restrictions; it is not unlimited or an offline open-source model.</span>
+</details></div>
+<div class="card" id="histCard" style="--d:3" hidden>
+    <h2>Recent</h2>
+    <div id="hist"></div>
+  </div>
+
+  <div class="card" style="--d:3">
+    <details>
+      <summary>Advanced</summary>
+      <div class="group" style="margin-top:12px">
+        <div class="rowf"><span>Animations</span><input type="checkbox" id="anim" checked></div>
+        <div class="rowf"><span>Natural server</span><input type="text" id="baseN" value="https://kenpath-svara-tts.hf.space" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+        <div class="rowf"><span>Studio server</span><input type="text" id="baseP" value="https://ai4bharat-indic-parler-tts.hf.space" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+        <div class="rowf"><span>Clone server</span><input type="text" id="baseC" value="https://ai4bharat-indicf5.hf.space" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+        <div class="rowf"><span>HF token</span><input type="password" id="token" placeholder="hf_… (optional)" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+      </div>
+      <label class="hint" for="desc">Studio voice description (auto-built, editable)</label>
+      <textarea id="desc" style="min-height:80px;font-size:.9rem;margin-top:6px"></textarea>
+      <div id="dbg"></div>
+      <span class="hint">Natural = svara-TTS. Studio = Indic Parler-TTS. My voice = IndicF5 cloning. These run on free community servers on shared hardware: the first request can take 1–2 minutes, and servers can go offline or hit daily limits. This HTML does not include a model or Python server. GitHub Pages can host the interface, but AI generation needs a separate running server. Download generated WAV files to play them offline.</span>
+    </details>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let lastSse = '', lastFiles = '';
+const dbg = () => { $('dbg').textContent = 'Last server reply: ' + lastSse + '\n' + lastFiles; };
+
+// ---------- animations on/off ----------
+function applyAnim() { document.documentElement.classList.toggle('noanim', !$('anim').checked); try { localStorage.setItem('anim', $('anim').checked ? '1' : '0'); } catch (e) {} }
+try { if (localStorage.getItem('anim') === '0') $('anim').checked = false; } catch (e) {}
+$('anim').addEventListener('change', applyAnim); applyAnim();
+
+// ---------- per-letter animation (grapheme safe for Telugu) ----------
+function graphemes(s) { try { return Array.from(new Intl.Segmenter(undefined, { granularity:'grapheme' }).segment(s), x => x.segment); } catch (e) { return Array.from(s); } }
+function letters(el, text, max) {
+  el.textContent = ''; const g = graphemes(text);
+  if (g.length > (max || 90)) { el.textContent = text; return; }
+  g.forEach((c, i) => { const s = document.createElement('span'); s.className = 'ch'; s.style.setProperty('--i', i); s.textContent = c === ' ' ? ' ' : c; el.appendChild(s); });
+}
+letters($('title'), 'Telugu Voice Studio');
+function say(msg, cls) { const s = $('status'); s.className = cls || ''; letters(s, msg, 90); }
+
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('.btn, .chip'); if (!b || b.disabled) return;
+  const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height), s = document.createElement('span');
+  s.className = 'rip'; s.style.width = s.style.height = d + 'px'; s.style.left = (e.clientX - r.left - d / 2) + 'px'; s.style.top = (e.clientY - r.top - d / 2) + 'px';
+  b.appendChild(s); setTimeout(() => s.remove(), 700);
+});
+
+// ---------- languages ----------
+const L = [
+ { id:'te', n:'Telugu (తెలుగు)', sv:'Telugu (తెలుగు)', pa:'Telugu', sp:['Prakash','Lalitha','Kiran'], s:'నమస్కారం! మీరు ఎలా ఉన్నారు? ఈ రోజు వాతావరణం చాలా బాగుంది.' },
+ { id:'hi', n:'Hindi (हिन्दी)', sv:'Hindi (हिन्दी)', pa:'Hindi', sp:['Rohit','Divya','Aman','Rani'], s:'नमस्ते! आप कैसे हैं? आज मौसम बहुत अच्छा है।' },
+ { id:'ta', n:'Tamil (தமிழ்)', sv:'Tamil (தமிழ்)', pa:'Tamil', sp:['Jaya','Kavitha'], s:'வணக்கம்! நீங்கள் எப்படி இருக்கிறீர்கள்? இன்று வானிலை மிகவும் நன்றாக உள்ளது.' },
+ { id:'kn', n:'Kannada (ಕನ್ನಡ)', sv:'Kannada (ಕನ್ನಡ)', pa:'Kannada', sp:['Suresh','Anu','Chetan','Vidya'], s:'ನಮಸ್ಕಾರ! ನೀವು ಹೇಗಿದ್ದೀರಿ? ಇಂದು ಹವಾಮಾನ ತುಂಬಾ ಚೆನ್ನಾಗಿದೆ.' },
+ { id:'ml', n:'Malayalam (മലയാളം)', sv:'Malayalam (മലയാളം)', pa:'Malayalam', sp:['Anjali','Anju','Harish'], s:'നമസ്കാരം! സുഖമാണോ? ഇന്ന് കാലാവസ്ഥ വളരെ നല്ലതാണ്.' },
+ { id:'bn', n:'Bengali (বাংলা)', sv:'Bengali (বাংলা)', pa:'Bengali', sp:['Arjun','Aditi','Tapan','Rashmi','Arnav','Riya'], s:'নমস্কার! আপনি কেমন আছেন? আজ আবহাওয়া খুব সুন্দর।' },
+ { id:'mr', n:'Marathi (मराठी)', sv:'Marathi (मराठी)', pa:'Marathi', sp:['Sanjay','Sunita','Nikhil','Radha','Varun','Isha'], s:'नमस्कार! तुम्ही कसे आहात? आज हवामान खूप छान आहे.' },
+ { id:'gu', n:'Gujarati (ગુજરાતી)', sv:'Gujarati (ગુજરાતી)', pa:'Gujarati', sp:['Yash','Neha'], s:'નમસ્તે! તમે કેમ છો? આજે હવામાન ખૂબ સરસ છે.' },
+ { id:'pa', n:'Punjabi (ਪੰਜਾਬੀ)', sv:'Punjabi (ਪੰਜਾਬੀ)', pa:'Punjabi', sp:['Divjot','Gurpreet'], s:'ਸਤ ਸ੍ਰੀ ਅਕਾਲ! ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ? ਅੱਜ ਮੌਸਮ ਬਹੁਤ ਵਧੀਆ ਹੈ।' },
+ { id:'or', n:'Odia (ଓଡ଼ିଆ)', sv:null, pa:'Odia', sp:['Manas','Debjani'], s:'ନମସ୍କାର! ଆପଣ କେମିତି ଅଛନ୍ତି? ଆଜି ପାଗ ବହୁତ ଭଲ।' },
+ { id:'as', n:'Assamese (অসমীয়া)', sv:'Assamese (অসমীয়া)', pa:'Assamese', sp:['Amit','Sita','Poonam','Rakesh'], s:'নমস্কাৰ! আপুনি কেনে আছে? আজি বতৰ বহুত ভাল।' },
+ { id:'ne', n:'Nepali (नेपाली)', sv:'Nepali (नेपाली)', pa:'Nepali', sp:['Amrita'], s:'नमस्ते! तपाईं कस्तो हुनुहुन्छ? आज मौसम धेरै राम्रो छ।' },
+ { id:'sa', n:'Sanskrit (संस्कृतम्)', sv:'Sanskrit (संस्कृतम्)', pa:'Sanskrit', sp:['Aryan'], s:'नमो नमः! भवान् कथम् अस्ति?' },
+ { id:'en', n:'English (Indian)', sv:'English (Indian)', pa:'English', sp:['Priya','Kavya','Meera','Sneha','Gauri','Nisha','Ravi','Aakash','Kabir','Raghav','Tarun','Vikas','Thoma','Mary'], s:'Hello! How are you today? The weather is lovely.' },
+ { id:'brx', n:'Bodo (बर’/बड़ो)', sv:'Bodo (बर’/बड़ो)', pa:'Bodo', sp:['Bikram','Maya','Kalpana'], s:'' },
+ { id:'doi', n:'Dogri (डोगरी)', sv:'Dogri (डोगरी)', pa:'Dogri', sp:['Karan'], s:'' },
+ { id:'mai', n:'Maithili (मैथिली)', sv:'Maithili (मैथिली)', pa:'Maithili', sp:[], s:'' },
+ { id:'bho', n:'Bhojpuri (भोजपुरी)', sv:'Bhojpuri (भोजपुरी)', pa:null, sp:[], s:'' },
+ { id:'hne', n:'Chhattisgarhi (छत्तीसगढ़ी)', sv:'Chhattisgarhi (छत्तीसगढ़ी)', pa:'Chhattisgarhi', sp:['Bhanu','Champa'], s:'' },
+ { id:'mag', n:'Magahi (मगही)', sv:'Magahi (मगही)', pa:null, sp:[], s:'' },
+ { id:'mni', n:'Manipuri (মৈতৈলোন্)', sv:null, pa:'Manipuri', sp:['Laishram','Ranjit'], s:'' },
+ { id:'ur', n:'Urdu (اردو)', sv:null, pa:'Urdu', sp:[], s:'' },
+ { id:'kok', n:'Konkani (कोंकणी)', sv:null, pa:'Konkani', sp:[], s:'' },
+ { id:'sd', n:'Sindhi (سنڌي)', sv:null, pa:'Sindhi', sp:[], s:'' },
+ { id:'sat', n:'Santali (ᱥᱟᱱᱛᱟᱲᱤ)', sv:null, pa:'Santali', sp:[], s:'' }
+];
+const byId = id => L.find(x => x.id === id);
+(function () { const sel = $('lang'); L.forEach(l => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.n; sel.appendChild(o); }); sel.value = 'te'; })();
+function detectLang(t) {
+  const c = {}, rules = [['te',0x0C00,0x0C7F],['kn',0x0C80,0x0CFF],['ta',0x0B80,0x0BFF],['ml',0x0D00,0x0D7F],['bn',0x0980,0x09FF],['gu',0x0A80,0x0AFF],['pa',0x0A00,0x0A7F],['or',0x0B00,0x0B7F],['hi',0x0900,0x097F],['ur',0x0600,0x06FF],['en',0x41,0x7A]];
+  let total = 0;
+  for (const ch of t) { const cp = ch.codePointAt(0); for (const [id, a, b] of rules) if (cp >= a && cp <= b) { if (id === 'en' && !/[A-Za-z]/.test(ch)) continue; c[id] = (c[id] || 0) + 1; total++; break; } }
+  let best = null, n = 0; for (const k in c) if (c[k] > n) { n = c[k]; best = k; }
+  if (!best || total < 3) return null;
+  if (best === 'bn' && /[ৰৱ]/.test(t)) return 'as';
+  return best;
+}
+
+// ---------- engine ----------
+let engine = 'natural';
+function setEngine(e) {
+  engine = e; const idx = { natural:0, studio:1, clone:2 }[e];
+  $('segI').style.transform = `translateX(${idx * 100}%)`;
+  document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.e === e));
+  [['pNatural','natural'],['pStudio','studio'],['pClone','clone']].forEach(([id, k]) => { const el = $(id), show = e === k; if (show && el.hidden) { el.hidden = false; el.classList.remove('panel-in'); void el.offsetWidth; el.classList.add('panel-in'); } else if (!show) el.hidden = true; });
+  $('langGroup').hidden = e === 'clone';
+  refreshNote();
+}
+document.querySelectorAll('#seg button').forEach(b => b.onclick = () => setEngine(b.dataset.e));
+function fillSpeakers() {
+  const l = byId($('lang').value), sel = $('speaker'); sel.innerHTML = '';
+  if (!l.sp.length) { const o = document.createElement('option'); o.value = ''; o.textContent = 'Default voice'; sel.appendChild(o); }
+  l.sp.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+  refreshDesc();
+}
+function refreshNote() {
+  const l = byId($('lang').value); let m = '';
+  if (engine === 'natural' && !l.sv) m = 'Natural voices do not cover ' + l.n.split(' ')[0] + '. Studio will be used for it automatically.';
+  if (engine === 'studio' && !l.pa) m = 'Studio voices do not cover ' + l.n.split(' ')[0] + '. Natural will be used for it automatically.';
+  if (engine === 'clone') m = 'Online only: sends your saved clip and text to the configured server. A failed clone will not be replaced with another voice. Use a short clip and its exact transcript.';
+  $('engineNote').textContent = m;
+}
+$('lang').addEventListener('change', () => { fillSpeakers(); refreshNote(); });
+$('temp').addEventListener('input', () => { $('tempO').textContent = $('temp').value; });
+$('gap').addEventListener('input', () => { $('gapO').textContent = (+$('gap').value).toFixed(2) + ' s'; });
+
+function onText() {
+  $('count').textContent = $('txt').value.length + ' characters';
+  if ($('auto').checked) {
+    const d = detectLang($('txt').value);
+    if (d && d !== $('lang').value && byId(d)) { $('lang').value = d; fillSpeakers(); refreshNote(); }
+    $('detected').textContent = d ? 'Detected: ' + byId(d).n.split(' ')[0] : '';
+  } else $('detected').textContent = '';
+}
+$('txt').addEventListener('input', onText); $('auto').addEventListener('change', onText);
+$('sample').onclick = () => { const l = byId($('lang').value); if (l.s) { $('txt').value = l.s; onText(); } else say('No sample for this language yet. Type your own text.', ''); };
+
+try { localStorage.removeItem('hf_token'); } catch (e) {}
+function authHeaders(extra, target) {
+  const h = Object.assign({}, extra || {}), t = $('token').value.trim();
+  if (t && target && new URL(target, location.href).hostname.endsWith('.hf.space')) h.Authorization = 'Bearer ' + t;
+  return h;
+}
+let generationController = null;
+async function netFetch(url, options = {}) {
+  const controller = new AbortController();
+  const parent = generationController && generationController.signal;
+  const abort = () => controller.abort();
+  if (parent) { if (parent.aborted) abort(); else parent.addEventListener('abort', abort, {once:true}); }
+  const timer = setTimeout(abort, 180000);
+  try {
+    const response = await fetch(url, {...options, signal:controller.signal});
+    // Consume within the deadline; fetch() alone times out only the headers.
+    const bytes = await response.arrayBuffer();
+    return new Response(bytes, {status:response.status, statusText:response.statusText, headers:response.headers});
+  } catch(e) {
+    if (controller.signal.aborted) throw new Error(parent && parent.aborted ? 'CANCELLED' : 'TIMEOUT');
+    throw e;
+  } finally { clearTimeout(timer); if (parent) parent.removeEventListener('abort', abort); }
+}
+$('cancelGen').onclick = () => { if (generationController) generationController.abort(); };
+
+const STYLE = { natural:'with a friendly, natural conversational tone and moderate expressiveness', narration:'with a calm, neutral tone, perfect for narration', news:'with a clear, confident, neutral tone like a news presenter', expressive:'with a very expressive and animated tone, perfect for storytelling', happy:'with a happy, warm and cheerful tone', sad:'with a sad, soft and emotional tone' };
+function buildDesc() { const who = $('speaker').value || 'A female speaker'; return `${who} speaks ${$('pace').value} in ${$('pitch').value} voice, ${STYLE[$('style').value]}. The recording is of very high quality, very close, with no background noise, very clear audio.`; }
+let descTouched = false;
+function refreshDesc() { if (!descTouched) $('desc').value = buildDesc(); }
+['speaker','style','pace','pitch'].forEach(id => $(id).addEventListener('change', refreshDesc));
+$('desc').addEventListener('input', () => { descTouched = true; });
+fillSpeakers(); setEngine('natural'); onText();
+
+function splitText(t, max) {
+  const sentences = t.replace(/\r/g, '').split(/(?<=[.!?।॥\n])\s*/).map(s => s.trim()).filter(Boolean), out = []; let cur = '';
+  for (let s of sentences) {
+    while (s.length > max) { let cut = s.lastIndexOf(',', max - 1); if (cut < 1) cut = s.lastIndexOf(' ', max - 1); if (cut < 1) cut = max - 1; if (cur) { out.push(cur); cur = ''; } out.push(s.slice(0, cut + 1).trim()); s = s.slice(cut + 1).trim(); }
+    if ((cur + ' ' + s).trim().length > max) { if (cur) out.push(cur); cur = s; } else cur = (cur + ' ' + s).trim();
+  }
+  if (cur) out.push(cur); return out;
+}
+
+// ---------- audio helpers ----------
+let actx = null;
+function getCtx() { if (actx) return actx; const AC = window.AudioContext || window.webkitAudioContext; try { actx = new AC({ sampleRate:24000 }); } catch (e) { actx = new AC(); } return actx; }
+async function decodeToMono(blob) {
+  const buf = await blob.arrayBuffer();
+  const ab = await new Promise((res, rej) => { const p = getCtx().decodeAudioData(buf.slice(0), res, rej); if (p && p.catch) p.catch(rej); });
+  const n = ab.length, ch = ab.numberOfChannels, out = new Float32Array(n);
+  for (let c = 0; c < ch; c++) { const d = ab.getChannelData(c); for (let i = 0; i < n; i++) out[i] += d[i] / ch; }
+  return { data:out, rate:ab.sampleRate };
+}
+function peak(f) { let m = 0; for (let i = 0; i < f.length; i++) { const a = Math.abs(f[i]); if (a > m) m = a; } return m; }
+function normalize(f) { const m = peak(f); if (m > 0.02) { const g = 0.92 / m; for (let i = 0; i < f.length; i++) f[i] *= g; } return typeof f === 'string' ? {path:f} : f; }
+function trimSilence(f, rate) {
+  const th = Math.max(0.01, peak(f) * 0.04), pad = Math.round(rate * 0.08); let a = 0, b = f.length - 1;
+  while (a < b && Math.abs(f[a]) < th) a++; while (b > a && Math.abs(f[b]) < th) b--;
+  return f.slice(Math.max(0, a - pad), Math.min(f.length, b + pad));
+}
+// --- noise reduction: high-pass + spectral subtraction (noise profile from the quietest frames) ---
+function fft(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang), half = len >> 1;
+    for (let i = 0; i < n; i += len) { let cr = 1, ci = 0;
+      for (let k = 0; k < half; k++) { const a = i + k, b = a + half, vr = re[b] * cr - im[b] * ci, vi = re[b] * ci + im[b] * cr; re[b] = re[a] - vr; im[b] = im[a] - vi; re[a] += vr; im[a] += vi; const nc = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nc; } }
+  }
+}
+function ifft(re, im) { const n = re.length; for (let i = 0; i < n; i++) im[i] = -im[i]; fft(re, im); for (let i = 0; i < n; i++) { re[i] /= n; im[i] = -im[i] / n; } }
+function highpass(x, rate, fc) { const rc = 1 / (2 * Math.PI * fc), dt = 1 / rate, a = rc / (rc + dt), y = new Float32Array(x.length); let py = 0, px = 0; for (let i = 0; i < x.length; i++) { py = a * (py + x[i] - px); px = x[i]; y[i] = py; } return y; }
+function denoise(x0, rate) {
+  const x = highpass(x0, rate, 80), N = 1024, H = 256;
+  if (x.length < N * 4) return x;
+  const win = new Float32Array(N); for (let i = 0; i < N; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N);
+  const frames = Math.floor((x.length - N) / H) + 1, en = new Float32Array(frames);
+  for (let f = 0; f < frames; f++) { let s = 0; for (let i = 0; i < N; i += 2) { const v = x[f * H + i]; s += v * v; } en[f] = s; }
+  const order = Array.from(en.keys()).sort((a, b) => en[a] - en[b]), k = Math.max(4, Math.floor(frames * 0.12)), noise = new Float32Array(N / 2 + 1), re = new Float32Array(N), im = new Float32Array(N);
+  for (let q = 0; q < k; q++) { const f = order[q]; for (let i = 0; i < N; i++) { re[i] = x[f * H + i] * win[i]; im[i] = 0; } fft(re, im); for (let b = 0; b <= N / 2; b++) noise[b] += Math.hypot(re[b], im[b]) / k; }
+  const out = new Float32Array(x.length + N), norm = new Float32Array(x.length + N), gPrev = new Float32Array(N / 2 + 1).fill(1);
+  for (let f = 0; f < frames; f++) {
+    for (let i = 0; i < N; i++) { re[i] = x[f * H + i] * win[i]; im[i] = 0; }
+    fft(re, im);
+    for (let b = 0; b <= N / 2; b++) {
+      const mag = Math.hypot(re[b], im[b]) + 1e-9; let g = Math.max(0.08, (mag - noise[b] * 1.7) / mag); g = 0.55 * g + 0.45 * gPrev[b]; gPrev[b] = g;
+      re[b] *= g; im[b] *= g; if (b > 0 && b < N / 2) { re[N - b] *= g; im[N - b] *= g; }
+    }
+    ifft(re, im);
+    for (let i = 0; i < N; i++) { out[f * H + i] += re[i] * win[i]; norm[f * H + i] += win[i] * win[i]; }
+  }
+  const y = new Float32Array(x.length); for (let i = 0; i < x.length; i++) y[i] = norm[i] > 1e-3 ? out[i] / norm[i] : x[i]; return y;
+}
+function floatToInt16(f) { const o = new Int16Array(f.length); for (let i = 0; i < f.length; i++) { const s = Math.max(-1, Math.min(1, f[i])); o[i] = s < 0 ? s * 0x8000 : s * 0x7FFF; } return o; }
+function wavBlob(f, rate) {
+  const i16 = floatToInt16(f), n = i16.length, dv = new DataView(new ArrayBuffer(44 + n * 2)), w = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+  w(0,'RIFF'); dv.setUint32(4, 36 + n * 2, true); w(8,'WAVE'); w(12,'fmt '); dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true); dv.setUint32(24,rate,true); dv.setUint32(28,rate*2,true); dv.setUint16(32,2,true); dv.setUint16(34,16,true); w(36,'data'); dv.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, i16[i], true); return new Blob([dv], { type:'audio/wav' });
+}
+function mp3Blob(f, rate) {
+  if (!window.lamejs) return null;
+  const enc = new lamejs.Mp3Encoder(1, rate, 128), pcm = floatToInt16(f), parts = [];
+  for (let i = 0; i < pcm.length; i += 1152) { const b = enc.encodeBuffer(pcm.subarray(i, i + 1152)); if (b.length) parts.push(new Uint8Array(b)); }
+  const e = enc.flush(); if (e.length) parts.push(new Uint8Array(e)); return new Blob(parts, { type:'audio/mpeg' });
+}
+function joinPcm(list, rate, gapSec) { const gap = Math.round(rate * gapSec); let total = 0; list.forEach((a, i) => total += a.length + (i ? gap : 0)); const out = new Float32Array(total); let p = 0; list.forEach((a, i) => { if (i) p += gap; out.set(a, p); p += a.length; }); return out; }
+
+// ---------- Gradio REST ----------
+async function runApi(base, apiName, data) {
+  const r1 = await netFetch(`${base}/gradio_api/call/${apiName}`, { method:'POST', headers:authHeaders({ 'Content-Type':'application/json' }, base), body:JSON.stringify({ data }) });
+  if (!r1.ok) throw new Error('OFFLINE:' + r1.status);
+  const { event_id } = await r1.json(); if (!event_id) throw new Error('NOJOB');
+  const r2 = await netFetch(`${base}/gradio_api/call/${apiName}/${event_id}`, { headers:authHeaders(null, base) });
+  if (!r2.ok) throw new Error('OFFLINE:' + r2.status);
+  const body = await r2.text(); lastSse = body.slice(0, 500).replace(/\s+/g, ' ');
+  for (const b of body.replace(/\r\n/g, '\n').split(/\n\n+/)) {
+    if (/^event:\s*error/m.test(b)) { const m = b.match(/^data:\s*(.*)$/m); const d = m ? m[1].trim() : ''; throw new Error(!d || d === 'null' ? 'NODETAIL' : 'DETAIL:' + d.slice(0, 200)); }
+    if (/^event:\s*complete/m.test(b)) { const m = b.match(/^data:\s*(.*)$/m); const f = JSON.parse(m[1])[0]; if (!f) throw new Error('EMPTY'); return typeof f === 'string' ? {path:f} : f; }
+  }
+  throw new Error('NORESULT');
+}
+function explain(which, msg) {
+  if (msg === 'CANCELLED') return 'Generation cancelled.';
+  if (msg === 'TIMEOUT') return 'The server did not finish within 3 minutes. Try a shorter sentence or another running server.';
+  const nm = { natural:'Natural', studio:'Studio', clone:'My voice' }[which];
+  if (/^OFFLINE:/.test(msg)) return `The ${nm} server is not answering (${msg.slice(8)}). It may be asleep or offline.`;
+  if (/^DETAIL:/.test(msg)) { const d = msg.slice(7); return /quota|GPU|limit|exceeded/i.test(d) ? `The ${nm} server's free GPU quota is used up. Open the original demo to sign in, or wait for quota renewal. A token does not guarantee additional quota.` : `The ${nm} server reported: ${d}`; }
+  if (msg === 'NODETAIL') return which === 'clone' ? 'The clone server returned an error without details. Check the clip/transcript and server status; the cause is unknown.' : `The ${nm} server hit an error and gave no reason. It is probably overloaded or out of free GPU quota.`;
+  if (msg === 'EMPTY' || msg === 'NORESULT') return `The ${nm} server returned no audio.`;
+  return msg;
+}
+function fileCandidates(base, f) {
+  const c = [], p = f.path || '';
+  if (f.audio_url) f = {...f, url:new URL(f.audio_url, base).href};
+  if (f.url) { c.push(new URL(f.url, base).href); try { const u = new URL(f.url), rest = u.pathname + u.search; c.push(base + rest); c.push(rest.indexOf('gradio_api') < 0 ? base + rest.replace('/file=', '/gradio_api/file=') : base + rest.replace('/gradio_api/file=', '/file=')); } catch (e) {} }
+  if (p) c.push(`${base}/gradio_api/file=${p}`, `${base}/file=${p}`, `${base}/gradio_api/file/${p.replace(/^\//, '')}`);
+  return [...new Set(c)];
+}
+async function fetchAudio(base, f) {
+  const tried = [];
+  for (const u of fileCandidates(base, f)) { try { const r = await netFetch(u, { headers:authHeaders(null, u) }); tried.push(r.status + ' ' + u); if (!r.ok) continue; const b = await r.blob(); if (b.size > 500) { lastFiles = 'Audio file: ' + tried.join(' | '); return b; } } catch (e) { if (/^(CANCELLED|TIMEOUT)$/.test(e.message)) throw e; tried.push('ERR ' + u); } }
+  lastFiles = 'Audio file tried: ' + tried.join(' | '); return null;
+}
+async function withRetry(fn, tries) { let err; for (let a = 0; a < tries; a++) { try { return await fn(); } catch (e) { err = e; if (/^CANCELLED|^TIMEOUT|^OFFLINE|^DETAIL:.*quota/i.test(e.message)) break; await new Promise(r => setTimeout(r, 2500 * (a + 1))); } } throw err; }
+async function uploadFile(base, blob, name) {
+  const fd = new FormData(); fd.append('files', blob, name);
+  const r = await netFetch(`${base}/gradio_api/upload`, { method:'POST', headers:authHeaders(null, base), body:fd });
+  if (!r.ok) throw new Error('OFFLINE:' + r.status);
+  const j = await r.json(); if (!j[0]) throw new Error('NOJOB'); return j[0];
+}
+
+// ---------- saved voices ----------
+let db = null;
+function openDb() { return new Promise(res => { try { const rq = indexedDB.open('telugu-voices', 1); rq.onupgradeneeded = () => rq.result.createObjectStore('v', { keyPath:'id' }); rq.onsuccess = () => { db = rq.result; res(true); }; rq.onerror = () => res(false); } catch (e) { res(false); } }); }
+const dbAll = () => new Promise(res => { if (!db) return res([]); try { const r = db.transaction('v').objectStore('v').getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); } catch (e) { res([]); } });
+const dbPut = v => new Promise(res => { if (!db) return res(false); try { const t = db.transaction('v', 'readwrite'); t.objectStore('v').put(v); t.oncomplete = () => res(true); t.onerror = () => res(false); } catch (e) { res(false); } });
+const dbDel = id => new Promise(res => { if (!db) return res(false); try { const t = db.transaction('v', 'readwrite'); t.objectStore('v').delete(id); t.oncomplete = () => res(true); t.onerror = () => res(false); } catch (e) { res(false); } });
+let voices = [];
+async function refreshVoices(selectId) {
+  const mem = voices.filter(v => v.id === 'tmp'); voices = (await dbAll()).concat(mem);
+  const sel = $('myVoice'); sel.innerHTML = '';
+  if (!voices.length) { const o = document.createElement('option'); o.value = ''; o.textContent = 'None yet'; sel.appendChild(o); $('newBox').hidden = false; }
+  else voices.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.name; sel.appendChild(o); });
+  if (selectId) sel.value = selectId;
+}
+$('newVoice').onclick = () => { $('newBox').hidden = !$('newBox').hidden; };
+$('delVoice').onclick = async () => { const id = $('myVoice').value; if (!id) return; if (id === 'tmp') voices = voices.filter(v => v.id !== 'tmp'); else await dbDel(id); await refreshVoices(); };
+
+const SCRIPT = 'నమస్కారం, ఇది నా సహజమైన గొంతు. తెలుగు భాష చాలా మధురమైనది. కొత్త విషయాలు నేర్చుకోవడం నాకు చాలా ఇష్టం.';
+$('scriptBtn').onclick = () => { const b = $('scriptBox'); b.textContent = SCRIPT; b.hidden = false; $('vText').value = SCRIPT; $('recInfo').textContent = 'Press Record first, then read the entire script in your normal voice and press Stop. The text below is already filled in. If you skip or change words, edit the text to match.'; };
+
+let refWav = null, refSecs = 0;
+async function setRefFromBlob(blob) {
+  refWav = null; refSecs = 0; $('refPlayer').hidden = true;
+  $('recInfo').textContent = 'Processing clip…';
+  const d = await decodeToMono(blob); let x = d.data;
+  if (x.length / d.rate > 30.1) throw new Error('Clip is longer than 30 seconds. Upload a shorter clip; it will not be silently cut.');
+  if (x.length / d.rate < 2 || peak(x) < 0.005) throw new Error('Clip is too short or silent. Record at least 2 seconds of clear speech.');
+  if ($('nr').checked) x = denoise(x, d.rate);
+  x = trimSilence(x, d.rate); const max = Math.min(x.length, Math.round(d.rate * 30)); x = normalize(x.slice(0, max));
+  refWav = wavBlob(x, d.rate); refSecs = max / d.rate;
+  if ($('refPlayer').src.startsWith('blob:')) URL.revokeObjectURL($('refPlayer').src);
+  $('refPlayer').src = URL.createObjectURL(refWav); $('refPlayer').hidden = false;
+  $('recInfo').textContent = `Clip ready: ${refSecs.toFixed(1)} s` + ($('nr').checked ? ', noise reduced' : '') + '. Play it to check, then save.' + (refSecs > 15 ? ' Clips over about 15 s can lower quality on this model; if the result sounds off, try a 10–12 s clip.' : '');
+}
+$('vFile').addEventListener('change', async e => { const f = e.target.files[0]; if (!f) return; try { await setRefFromBlob(f); } catch (err) { $('recInfo').textContent = err.message || 'Could not read this audio file. Try a wav or mp3.'; } });
+let mr = null, chunks = [], recTimer = null, meterRaf = 0;
+$('recBtn').onclick = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:{ noiseSuppression:true, echoCancellation:true, autoGainControl:true } });
+    try { mr = new MediaRecorder(stream); } catch (e) { stream.getTracks().forEach(t => t.stop()); throw e; }
+    refWav = null; chunks = [];
+    let an = null; try { const c = getCtx(); if (c.state === 'suspended') c.resume(); const src = c.createMediaStreamSource(stream); an = c.createAnalyser(); an.fftSize = 256; src.connect(an); } catch (e) {}
+    $('meterWrap').hidden = false; const buf = new Uint8Array(128);
+    const loop = () => { if (!mr || mr.state !== 'recording') return; if (an) { an.getByteTimeDomainData(buf); let m = 0; for (let i = 0; i < buf.length; i++) m = Math.max(m, Math.abs(buf[i] - 128)); $('meter').style.width = Math.min(100, m / 80 * 100) + '%'; } meterRaf = requestAnimationFrame(loop); };
+    mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    mr.onstop = async () => { stream.getTracks().forEach(t => t.stop()); clearInterval(recTimer); cancelAnimationFrame(meterRaf); $('meterWrap').hidden = true; $('recBtn').disabled = false; $('recBtn').classList.remove('recOn'); $('stopRecBtn').disabled = true;
+      try { await setRefFromBlob(new Blob(chunks, { type:mr.mimeType || 'audio/webm' })); } catch (err) { $('recInfo').textContent = err.message || 'Recording could not be read. Try uploading a file instead.'; } };
+    mr.start(); let s = 0; $('recBtn').disabled = true; $('recBtn').classList.add('recOn'); $('stopRecBtn').disabled = false;
+    $('recInfo').innerHTML = '<span class="rec">● Recording… 0 s / 30 s</span>';
+    loop(); recTimer = setInterval(() => { s++; $('recInfo').innerHTML = '<span class="rec">● Recording… ' + s + ' s / 30 s</span>'; if (s >= 30) mr.stop(); }, 1000);
+  } catch (e) { $('recInfo').textContent = 'Microphone is blocked here. Upload an audio file instead, or open this page from an https link and allow the microphone.'; }
+};
+$('stopRecBtn').onclick = () => { if (mr && mr.state === 'recording') mr.stop(); };
+$('saveVoice').onclick = async () => {
+  const name = $('vName').value.trim(), txt = $('vText').value.trim();
+  if (!refWav) { $('recInfo').textContent = 'Add a clip first (record or upload).'; return; }
+  if (mr && mr.state === 'recording') { $('recInfo').textContent = 'Stop recording before saving.'; return; }
+  if (!name || !txt) { $('recInfo').textContent = 'Enter a voice name and the exact text spoken in the clip.'; return; }
+  const id = 'v' + Date.now(), ok = await dbPut({ id, name, text:txt, audio:refWav });
+  if (!ok) voices.push({ id:'tmp', name, text:txt, audio:refWav });
+  $('recInfo').textContent = ok ? `Saved "${name}" on this device.` : 'This browser cannot store it, so it works only until you close the page.';
+  await refreshVoices(ok ? id : 'tmp'); $('newBox').hidden = true; if (ok) { $('vName').value = ''; }
+};
+
+// ---------- player, visualizer, reader ----------
+const player = $('player'); let objUrl = null, outMp3 = null, outWav = null, analyser = null, srcNode = null, readerWords = [], readerWeights = [], readerTotal = 1;
+$('playBtn').onclick = () => { ensureAnalyser(); player.play().catch(() => {}); };
+$('pauseBtn').onclick = () => player.pause();
+$('rate').onchange = () => { player.playbackRate = parseFloat($('rate').value); };
+player.addEventListener('play', ensureAnalyser);
+function saveBlob(blob, name) { const u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); }
+$('dl').onclick = () => { if (outMp3) saveBlob(outMp3, 'telugu-voice-' + Date.now() + '.mp3'); else if (outWav) saveBlob(outWav, 'telugu-voice-' + Date.now() + '.wav'); };
+$('dlWav').onclick = () => { if (outWav) saveBlob(outWav, 'telugu-voice-' + Date.now() + '.wav'); };
+function ensureAnalyser() { try { const c = getCtx(); if (c.state === 'suspended') c.resume(); if (!srcNode) { srcNode = c.createMediaElementSource(player); analyser = c.createAnalyser(); analyser.fftSize = 128; srcNode.connect(analyser); analyser.connect(c.destination); } } catch (e) { analyser = null; } }
+const cv = $('viz'), g = cv.getContext('2d'); let phase = 0;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#0a7cff';
+function draw() {
+  requestAnimationFrame(draw); if ($('result').hidden) return;
+  const w = cv.width, h = cv.height, n = 40, bw = w / n; g.clearRect(0, 0, w, h);
+  const playing = !player.paused && !player.ended; let arr = null;
+  if (analyser && playing) { arr = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(arr); }
+  phase += 0.05; g.fillStyle = css('--acc');
+  for (let i = 0; i < n; i++) {
+    let v = arr ? arr[Math.floor(i * arr.length / n * 0.8)] / 255 : (playing ? 0.25 + 0.2 * Math.sin(phase * 2 + i * .5) : 0.08 + 0.04 * Math.sin(phase + i * .4));
+    const bh = Math.max(4, v * h * 0.9), x = i * bw + bw * 0.2, rw = bw * 0.6, y = (h - bh) / 2, r = rw / 2;
+    g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + rw, y, x + rw, y + bh, r); g.arcTo(x + rw, y + bh, x, y + bh, r); g.arcTo(x, y + bh, x, y, r); g.arcTo(x, y, x + rw, y, r); g.fill();
+  }
+}
+draw();
+function buildReader(text) {
+  const box = $('reader'); box.textContent = ''; readerWords = []; readerWeights = []; readerTotal = 0;
+  text.split(/\s+/).filter(Boolean).forEach(wd => { const s = document.createElement('span'); s.textContent = wd + ' '; box.appendChild(s); readerWords.push(s); const wt = wd.length + 1; readerWeights.push(wt); readerTotal += wt; });
+}
+player.addEventListener('timeupdate', () => {
+  if (!player.duration || !readerWords.length) return;
+  const target = (player.currentTime / player.duration) * readerTotal; let acc = 0, idx = -1;
+  for (let i = 0; i < readerWords.length; i++) { acc += readerWeights[i]; if (acc <= target) idx = i; else break; }
+  readerWords.forEach((s, i) => { s.classList.toggle('hot', i <= idx); s.classList.toggle('now', i === idx + 1 && !player.paused); });
+});
+player.addEventListener('ended', () => readerWords.forEach(s => { s.classList.add('hot'); s.classList.remove('now'); }));
+
+const history = [];
+function addHistory(item) {
+  history.unshift(item); if (history.length > 6) history.pop();
+  $('histCard').hidden = false; const box = $('hist'); box.textContent = '';
+  history.forEach(h => {
+    const row = document.createElement('div'); row.className = 'hist';
+    const d = document.createElement('div'); d.textContent = h.text.slice(0, 32) + (h.text.length > 32 ? '…' : ''); const sm = document.createElement('small'); sm.textContent = h.label; d.appendChild(sm);
+    const p = document.createElement('button'); p.className = 'btn alt'; p.textContent = '▶'; p.onclick = () => { loadOutput(h); player.play().catch(() => {}); };
+    const dl = document.createElement('button'); dl.className = 'btn ok'; dl.textContent = '⬇'; dl.onclick = () => saveBlob(h.mp3 || h.wav, 'telugu-voice-' + h.id + (h.mp3 ? '.mp3' : '.wav'));
+    row.append(d, p, dl); box.appendChild(row);
+  });
+}
+function loadOutput(h) {
+  outMp3 = h.mp3; outWav = h.wav; const pb = outMp3 || outWav;
+  if (objUrl) URL.revokeObjectURL(objUrl); objUrl = URL.createObjectURL(pb); player.src = objUrl; player.load(); player.playbackRate = parseFloat($('rate').value);
+  $('dl').textContent = outMp3 ? '⬇ Download MP3' : '⬇ Download WAV (MP3 encoder did not load)'; $('dlWav').hidden = !outMp3;
+  $('nowTitle').textContent = '🎙 ' + h.label; $('result').hidden = false; buildReader(h.text);
+}
+
+// ---------- generation ----------
+async function synthParts(which, parts, ctx, onPart) {
+  const pcms = []; let rate = 24000, base, call; const l = ctx.lang;
+  if (which === 'natural') {
+    base = $('baseN').value.trim().replace(/\/+$/, ''); const tag = $('emotion').value ? ' <' + $('emotion').value + '>' : '';
+    call = t => runApi(base, 'generate_speech', [l.sv, $('gender').value, t + tag, parseFloat($('temp').value), 0.8, 1.1, 2048]);
+  } else if (which === 'studio') {
+    base = $('baseP').value.trim().replace(/\/+$/, ''); call = t => runApi(base, 'generate_finetuned', [t, ctx.desc]);
+  } else {
+    base = $('baseC').value.trim().replace(/\/+$/, ''); let refPath = null;
+    call = async t => {
+      if (!refPath) refPath = await uploadFile(base, ctx.voice.audio, 'reference.wav');
+      return ctx.cloneModel === 'maya'
+        ? runApi(base, 'clone_speak', [t, refPath, ctx.voice.text, detectLang(ctx.voice.text) || 'te', l.id, true, 42, false])
+        : runApi(base, 'synthesize_speech', [t, { path:refPath, meta:{ _type:'gradio.FileData' } }, ctx.voice.text]);
+    };
+  }
+  for (let i = 0; i < parts.length; i++) {
+    onPart(i, parts.length);
+    const blob = await withRetry(async () => { const f = await call(parts[i]); const got = await fetchAudio(base, f); if (!got) throw new Error('The audio was made but its file could not be downloaded from the server.'); return got; }, which === 'clone' ? 1 : 2);
+    dbg(); const d = await decodeToMono(blob); pcms.push(normalize(trimSilence(d.data, d.rate))); rate = d.rate;
+    $('bar').style.width = Math.round(((i + 1) / parts.length) * 100) + '%';
+  }
+  return { pcms, rate };
+}
+$('go').onclick = async () => {
+  if (!navigator.onLine) { say('AI generation needs internet. Use Device voice below for local reading, or play a downloaded WAV.', 'err'); return; }
+  const text = $('txt').value.trim();
+  if (!text) { say('Please type some text first.', 'err'); return; }
+  const l = byId(detectLang(text) || $('lang').value) || byId('te');
+  let which = engine;
+  if (which !== 'clone') { const sel = byId($('lang').value); if (which === 'natural' && !sel.sv) which = 'studio'; else if (which === 'studio' && !sel.pa) which = 'natural'; }
+  const useLang = which === 'clone' ? l : byId($('lang').value);
+  let voice = null;
+  if (which === 'clone') { voice = voices.find(x => x.id === $('myVoice').value); if (!voice) { say('Save a voice first: tap "+ New voice".', 'err'); return; } }
+  if (which === 'studio' && !$('desc').value.trim()) refreshDesc();
+
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  generationController = new AbortController(); $('cancelGen').hidden = false;
+  getCtx().resume().catch(() => {});
+  const go = $('go'); $('cloneModel').disabled = true; $('deviceRead').disabled = true; go.disabled = true; go.classList.add('busy'); $('eq').hidden = false; $('result').hidden = true; player.pause();
+  $('barWrap').hidden = false; $('bar').style.width = '0';
+  say('Starting. The first request may take 1–2 minutes while the server wakes up.', '');
+  const ctx = { cloneModel:$('cloneModel').value, desc:$('desc').value.trim() || buildDesc(), voice, lang:useLang };
+  const sizes = { natural:130, studio:180, clone:150 }, names = { natural:'Natural', studio:'Studio', clone:'My voice' };
+  const order = [which];
+  if ($('fallback').checked) { if (which === 'natural' && useLang.pa) order.push('studio'); else if (which === 'studio' && useLang.sv) order.push('natural');  }
+  let res = null, used = which; const errs = [];
+  for (const w of order) {
+    try {
+      const wl = w === 'natural' || w === 'studio' ? (w === which ? useLang : l) : l;
+      const c2 = Object.assign({}, ctx, { lang:wl });
+      if (w !== order[0]) say(`${names[order[0]]} failed. Trying the ${names[w]} voice instead…`, '');
+      $('bar').style.width = '0';
+      res = await synthParts(w, splitText(text, sizes[w]), c2, (i, n) => say(`${names[w]}: part ${i + 1} of ${n}` + (w === 'clone' ? ' (shared server; please wait)' : '') + '…', ''));
+      used = w; break;
+    } catch (e) { errs.push(explain(w, e.message || String(e))); dbg(); if (generationController.signal.aborted) break; }
+  }
+  try {
+    if (!res) throw new Error(errs.join(' '));
+    const all = joinPcm(res.pcms, res.rate, parseFloat($('gap').value)), wav = wavBlob(all, res.rate); let mp3 = null; try { mp3 = mp3Blob(all, res.rate); } catch (e) { mp3 = null; }
+    const label = used === 'clone' ? ($('cloneModel').value === 'maya' ? 'Maya clone · ' : 'IndicF5 clone · ') + voice.name : names[used] + ' · ' + (used === which ? useLang : l).n.split(' ')[0];
+    const item = { id:Date.now(), text, wav, mp3, label };
+    loadOutput(item); addHistory(item);
+    const pb = mp3 || wav; say(`Done. ${(pb.size / 1024).toFixed(0)} KB ${mp3 ? 'MP3' : 'WAV'} ready.` + (used !== which ? ` Made with the ${names[used]} voice because ${names[which]} failed.` : ''), 'ok');
+    ensureAnalyser(); player.play().catch(() => say('Audio ready. Tap Play to hear it.', 'ok')); $('result').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  } catch (e) { say((e.message || 'Failed.') + ' Open the original demo if this server requires login; see Advanced for details.', 'err'); }
+  finally { $('cloneModel').disabled = false; $('deviceRead').disabled = false; generationController = null; $('cancelGen').hidden = true; go.disabled = false; go.classList.remove('busy'); $('eq').hidden = true; }
+};
+openDb().then(() => refreshVoices());
+let deviceVoices = [], deviceUtterance = null;
+function refreshDeviceVoices() {
+  const select = $('deviceVoice'), previous = select.value; select.textContent = '';
+  if (!('speechSynthesis' in window)) { $('deviceStatus').textContent = 'This browser has no device speech API.'; return; }
+  const lang = $('lang').value;
+  deviceVoices = speechSynthesis.getVoices().filter(v => v.lang.split('-')[0].toLowerCase() === lang);
+  deviceVoices.sort((a,b) => Number(b.localService)-Number(a.localService));
+  deviceVoices.forEach((v,i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = v.name + (v.localService ? ' · Local' : ' · Online'); select.appendChild(o); });
+  if ([...select.options].some(o => o.value === previous)) select.value = previous;
+  $('deviceStatus').textContent = deviceVoices.length ? 'Local = browser-reported device voice. Test in airplane mode to confirm.' : 'No voice for this language is exposed by this browser. Install a matching device TTS voice, then reopen this page.';
+}
+if ('speechSynthesis' in window) speechSynthesis.addEventListener('voiceschanged', refreshDeviceVoices);
+$('lang').addEventListener('change', refreshDeviceVoices);
+$('txt').addEventListener('input', refreshDeviceVoices);
+$('auto').addEventListener('change', refreshDeviceVoices);
+$('deviceRead').onclick = () => {
+  if (generationController) { $('deviceStatus').textContent = 'Cancel online generation before device reading.'; return; }
+  const v = deviceVoices[Number($('deviceVoice').value)], t = $('txt').value.trim();
+  if (!v || !t) { $('deviceStatus').textContent = 'Enter text and select an available voice.'; return; }
+  if (!navigator.onLine && !v.localService) { $('deviceStatus').textContent = 'This selected voice needs internet. Choose a Local voice.'; return; }
+  player.pause(); speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t); deviceUtterance = u; u.voice = v; u.lang = v.lang; u.rate = Number($('rate').value);
+  u.onstart = () => { $('deviceStatus').textContent = 'Reading with ' + v.name + ' (device voice, not a clone).'; };
+  u.onend = () => { if (deviceUtterance === u) { $('deviceStatus').textContent = 'Reading finished.'; deviceUtterance = null; } };
+  u.onerror = e => { if (deviceUtterance === u) $('deviceStatus').textContent = 'Device speech error: ' + e.error + '. Check installed voice data and media volume.'; };
+  speechSynthesis.speak(u);
+};
+$('deviceStop').onclick = () => { deviceUtterance = null; if ('speechSynthesis' in window) speechSynthesis.cancel(); $('deviceStatus').textContent = 'Stopped.'; };
+refreshDeviceVoices();
+const clonePresets = {
+ indic:['https://ai4bharat-indicf5.hf.space','https://huggingface.co/spaces/ai4bharat/IndicF5'],
+ maya:['https://maya-research-maya2-native-studio.hf.space','https://huggingface.co/spaces/maya-research/maya2-native-studio'],
+ community:['https://heyviru-indicf5.hf.space','https://huggingface.co/spaces/heyviru/IndicF5']
+};
+$('cloneModel').onchange = () => {
+ const preset = clonePresets[$('cloneModel').value];
+ if (preset) { $('baseC').value = preset[0]; $('openDemo').href = preset[1]; }
+ $('openDemo').hidden = !preset;
+ $('serverStatus').textContent = 'Selected server: ' + $('baseC').value + '. Your clip is sent only when you generate.';
+};
+$('baseC').addEventListener('input', () => { $('cloneModel').value = 'custom'; $('openDemo').hidden = true; });
+$('checkServer').onclick = async () => {
+ const b=$('checkServer');b.disabled=true;
+ const base=$('baseC').value.trim().replace(/\/+$/, '');
+ const model=$('cloneModel').value;
+ $('serverStatus').textContent='Checking server…';
+ const c=new AbortController(),timer=setTimeout(()=>c.abort(),15000);
+ try {
+  const r=await fetch(base+'/config',{signal:c.signal});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const config=await r.json();const name=model==='maya'?'clone_speak':'synthesize_speech';
+  if(!(config.dependencies||[]).some(d=>d.api_name===name))throw new Error('Expected clone API not found');
+  $('serverStatus').textContent='Server reachable; clone endpoint found. GPU quota and audio generation still need a real test.';
+ }catch(e){$('serverStatus').textContent='Server unavailable or browser access blocked: '+e.message+'. Try Open original demo.';}
+ finally{clearTimeout(timer);b.disabled=false;}
+};
+setEngine('clone');
+</script>
+</body>
+</html>
