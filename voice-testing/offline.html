@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="te">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101725"><meta name="description" content="Telugu speech on your own phone. Optional experimental local Piper AI WAV synthesis. No API key.">
+<title>Telugu Voice Studio — Local AI Test</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<style>
+:root{color-scheme:dark;--bg:#101725;--pane:#1a2434;--text:#f3f7ff;--dim:#9daecc;--line:#34435d;--blue:#61a9ff;--green:#92e0b4;--red:#ff9999}
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,"Noto Sans Telugu",sans-serif;background:radial-gradient(circle at top,#23365a,var(--bg) 58%);color:var(--text)}
+main{width:min(760px,100%);padding:18px 14px 48px;margin:auto}
+header{text-align:center;padding:21px 4px 16px}h1{font-size:clamp(26px,5vw,36px);margin:0;font-weight:800}h2{font-size:21px;margin:0 0 9px}p{margin:6px 0 12px}.sub{color:var(--dim)}
+.pill{display:inline-block;border:1px solid #4c76b0;background:#23406a;padding:4px 12px;border-radius:22px;font-size:12px;font-weight:700;color:#cce2ff;margin-bottom:9px}
+.card{border:1px solid var(--line);background:var(--pane);border-radius:22px;padding:19px 17px;margin:15px 0;box-shadow:0 12px 30px #080d1966}
+.note{background:#2a2b2d;border-left:3px solid #ffcf70;padding:11px 12px;border-radius:8px;color:#ffecd0;font-size:14px}
+textarea,select,input[type=number],input[type=range]{width:100%;font:inherit}
+textarea,select{border:1px solid #435571;border-radius:13px;background:#101826;color:var(--text);padding:13px;outline-offset:3px}
+textarea{min-height:155px;resize:vertical}textarea:focus,select:focus{border-color:var(--blue)}
+label{display:block;font-weight:700;margin:11px 0 5px;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stats{display:flex;gap:15px;color:var(--dim);font-size:13px;margin:8px 0}
+button,a.action{font:inherit;font-weight:750;cursor:pointer;border:1px solid #5c718b;border-radius:14px;padding:12px 13px;background:#2b405e;color:#f3f7ff;text-align:center}
+button:disabled{opacity:.52;cursor:not-allowed}button.primary{background:linear-gradient(100deg,#368cff,#76beff);border:0;color:#06162d;width:100%;font-size:17px;margin:9px 0}
+button.secondary{background:#163f36;border-color:#296f5c}button.danger{background:#3d2934;border-color:#795061}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.status{padding:12px;background:#101b2b;border:1px solid #3b4b66;border-radius:12px;color:var(--dim);white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}
+.status.error{border-color:#b65e6a;color:var(--red)}.status.ok{border-color:#459373;color:var(--green)}
+small,.mini{font-size:12px;color:var(--dim)}a{color:#98caff}.dl{display:block;margin-top:12px;text-align:center;font-weight:800;border-radius:13px;background:#244d40;color:#c4ffe7;padding:12px;text-decoration:none}audio{width:100%;margin-top:11px}details{border-top:1px solid #34435d;margin-top:15px;padding-top:12px}summary{cursor:pointer;font-weight:700}
+.progress{width:100%}footer{padding-top:15px;text-align:center;color:var(--dim);font-size:12px}
+@media(max-width:380px){.actions{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<header><div class="pill">PUBLIC TEST • LOCAL-FIRST • NO API KEY</div><h1>తెలుగు Voice Studio</h1><p class="sub">ముందుగా మీ ఫోన్‌లో పనిచేసే Text-to-Speechని పరీక్షించండి. AI WAV ప్రయోగం కూడా ఉంది.</p></header>
+<section class="card">
+<h2>1. Telugu Text</h2>
+<label for="text">తెలుగులో వ్రాయండి</label>
+<textarea id="text" spellcheck="false" placeholder="నమస్కారం! తెలుగు వాయిస్ పరీక్షకు స్వాగతం.">నమస్కారం! ఇది తెలుగు వాయిస్ పరీక్ష. మీరు ఎలా ఉన్నారు? ఈ రోజు వాతావరణం చాలా బాగుంది.</textarea>
+<div class="stats"><span id="chars">0 characters</span><span id="pieces">0 parts</span></div>
+<div class="note">గమనిక: Device voice = మీ ఫోన్‌లో ఉన్న TTS engine. ఇది voice cloning కాదు. Offlineగా చదవాలంటే Telugu voice data కూడా ఫోన్‌లో offline అందుబాటులో ఉండాలి.</div>
+</section>
+<section class="card">
+<h2>2. Device Voice — Basic Test</h2>
+<p class="sub">AI server అవసరం లేకుండా browser మాట్లాడే విధానం. WAV/MP3 export ఈ modeలో ఉండదు.</p>
+<label for="voices">ఫోన్‌లో అందుబాటులో ఉన్న Voice</label>
+<select id="voices"><option value="">Detecting voices...</option></select>
+<div class="grid">
+<div><label for="rate">Speed <span id="rateVal">1.0×</span></label><input id="rate" type="range" min="0.7" max="1.4" value="1" step="0.1"></div>
+<div><label for="pitch">Pitch <span id="pitchVal">1.0</span></label><input id="pitch" type="range" min="0.7" max="1.3" value="1" step="0.1"></div>
+</div>
+<button id="devicePlay" class="primary" type="button">▶ Read Telugu on my phone</button>
+<div class="actions"><button id="pause" type="button">Pause</button><button id="resume" type="button">Resume</button><button id="stop" class="danger" type="button">Stop</button></div>
+<div class="status" id="deviceStatus" role="status">Checking browser speech support...</div>
+</section>
+<section class="card">
+<div class="pill">OPTIONAL • EXPERIMENTAL</div>
+<h2>3. Local AI → WAV Download</h2>
+<p>Open-source <strong>Piper ONNX</strong> తెలుగు voice. మొదటిసారి సుమారు 60–100+ MB model/runtime download అవ్వాలి. తర్వాత పరికరంలో inference జరుగుతుంది. మీ గొంతు క్లోనింగ్ కాదు.</p>
+<label for="model">Telugu AI Voice</label>
+<select id="model">
+<option value="padmavathi">Padmavathi — Telugu (CC BY 4.0)</option>
+<option value="maya">Maya — Telugu (check individual dataset terms)</option>
+</select>
+<button id="aiMake" class="primary" type="button">Generate local AI voice → WAV</button>
+<button id="aiCancel" type="button">Cancel between parts</button>
+<progress id="aiProgress" class="progress" value="0" max="100"></progress>
+<div id="aiStatus" class="status" role="status">Not tested on your phone yet. First use requires internet and storage. Try with one or two short Telugu sentences first.</div>
+<audio id="aiAudio" controls hidden></audio>
+<a id="aiDownload" class="dl" download="telugu-local-ai.wav" hidden>Download generated WAV</a>
+<p class="mini">AI inference can be slow or fail due to memory or WebAssembly support. This is <strong>experimental</strong>, not a verified 2 GB RAM solution. For long text, keep the screen open; mobile browsers may stop background tasks. Downloaded voices may be removed by browser storage cleanup.</p>
+<details><summary>Model / licensing / limitations</summary>
+<p class="mini">Padmavathi model: <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/te/te_IN/padmavathi/medium" target="_blank" rel="noopener">rhasspy/piper-voices</a>; its dataset is CC BY 4.0. Inference depends on third-party Piper ONNX, espeak-ng WASM and onnxruntime-web. The files are downloaded to your browser, not the app owner's server. Use only voices you are entitled to use.</p></details>
+</section>
+<section class="card">
+<h2>4. Own voice sample recording</h2>
+<p class="sub">మీరు మీ సొంత గొంతును రికార్డ్ చేసి డౌన్‌లోడ్ చేసుకోవచ్చు. దీన్ని AI క్లోన్‌గా చూపించము.</p>
+<div class="grid"><button id="recStart" type="button">● Record my sample</button><button id="recStop" class="danger" type="button" disabled>Stop recording</button></div>
+<div id="recStatus" class="status">Microphone permission is asked only when recording starts.</div>
+<audio id="recAudio" controls hidden></audio><a id="recDownload" class="dl" hidden>Download my recording</a>
+</section>
+<section class="card"><h2>5. Voice cloning status</h2>
+<p class="note">మీ screenshotలోని “clone server returned an error” సమస్య పరిష్కారమైందని ఇక్కడ ప్రకటించడం లేదు. Public GPU voice cloning ఇంకా అందుబాటులో లేదు. మీ వాయిస్‌ను ఇతరులు అనుమతి లేకుండా క్లోన్ చేయకూడదు.</p>
+<p><a href="./index.html">Previous cloud-cloning test (experimental)</a></p>
+</section>
+<footer>Telugu Voice Studio • Testing only • Device voices depend on OS / installed languages • <span id="swStatus">Offline page cache: checking</span></footer>
+</main>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id), synth=window.speechSynthesis;
+let allVoices=[],running=false,runId=0,queue=[],idx=0,recording=null,stream=null,recChunks=[],aiCancelled=false,aiEngine=null,aiName="",aiUrl="",recUrl="";
+const set=(id,s,kind)=>{const e=$(id);e.textContent=s;e.className="status"+(kind?" "+kind:"")};
+const text=()=>$("text").value.trim();
+function splitText(value,limit){
+ const parts=[],sentences=value.replace(/\r/g,"").split(/(?<=[.!?।॥\n])\s*/u).filter(Boolean);
+ let current="";
+ for(let sentence of sentences){
+  while(sentence.length>limit){let cut=sentence.lastIndexOf(" ",limit);if(cut<limit/3)cut=limit;const part=sentence.slice(0,cut).trim();if(current){parts.push(current);current=""}if(part)parts.push(part);sentence=sentence.slice(cut).trim()}
+  if(!sentence)continue;
+  if((current+" "+sentence).trim().length>limit){if(current)parts.push(current);current=sentence}else current=(current+" "+sentence).trim();
+ }
+ if(current)parts.push(current);
+ return parts.filter(Boolean);
+}
+function updateStats(){$("chars").textContent=text().length+" characters";$("pieces").textContent=splitText(text(),155).length+" parts"}
+$("text").addEventListener("input",updateStats);updateStats();
+function findVoices(){
+ if(!synth){set("deviceStatus","Web Speech synthesis is unavailable in this browser.","error");$("devicePlay").disabled=true;return}
+ allVoices=synth.getVoices();
+ const v=$("voices"),previous=v.value;v.innerHTML="";
+ const tel=allVoices.filter(x=>(x.lang||"").toLowerCase().startsWith("te"));
+ const choices=tel.length?tel:allVoices;
+ if(!choices.length)v.add(new Option("Use phone default (Telugu support unverified)",""));
+ else choices.forEach(x=>v.add(new Option(x.name+" — "+x.lang+(x.localService?" (local)":" (may need internet)"),x.voiceURI)));
+ if([...v.options].some(x=>x.value===previous))v.value=previous;
+ if(tel.length)set("deviceStatus",tel.length+" Telugu voice(s) found. Test internet off to verify genuine offline support.","ok");
+ else set("deviceStatus","No Telugu voice was reported by the browser. You may try phone default; if Telugu isn't spoken correctly, install an offline Telugu TTS voice in Android Text-to-speech settings.");
+}
+if(synth){findVoices();synth.addEventListener?.("voiceschanged",findVoices);setTimeout(findVoices,800);setTimeout(findVoices,2000)}
+$("rate").oninput=()=>{$("rateVal").textContent=Number($("rate").value).toFixed(1)+"×"};
+$("pitch").oninput=()=>{$("pitchVal").textContent=Number($("pitch").value).toFixed(1)};
+function speakNext(id){
+ if(id!==runId)return;
+ if(idx>=queue.length){running=false;set("deviceStatus","Finished reading "+queue.length+" parts.","ok");return}
+ const msg=new SpeechSynthesisUtterance(queue[idx]);msg.lang="te-IN";
+ const chosen=allVoices.find(x=>x.voiceURI===$("voices").value);
+ if(chosen)msg.voice=chosen;
+ msg.rate=Number($("rate").value);msg.pitch=Number($("pitch").value);
+ msg.onend=()=>{if(id!==runId)return;idx++;speakNext(id)};
+ msg.onerror=e=>{if(id!==runId)return;running=false;set("deviceStatus","Device TTS stopped: "+(e.error||"unknown")+" . Check Telugu language data and offline voice settings.","error")};
+ set("deviceStatus","Reading part "+(idx+1)+" / "+queue.length+" via device TTS.");
+ synth.speak(msg);
+}
+$("devicePlay").onclick=()=>{
+ if(!synth)return;if(!text()){set("deviceStatus","Enter text first.","error");return}
+ ++runId;synth.cancel();queue=splitText(text(),145);idx=0;running=true;speakNext(runId)
+};
+$("pause").onclick=()=>{if(synth&&running){synth.pause();set("deviceStatus","Paused.")}};
+$("resume").onclick=()=>{if(synth){synth.resume();set("deviceStatus","Resumed.")}};
+$("stop").onclick=()=>{++runId;running=false;synth?.cancel();set("deviceStatus","Stopped.")};
+const CDN="https://cdn.jsdelivr.net/gh/piper-tts/piper-tts.github.io@main/";
+const MODEL="https://huggingface.co/rhasspy/piper-voices/resolve/main/te/te_IN/";
+let phModule=null,phOutput=[],cachedEngine=null,phonemizerPromise=null;
+function script(url){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=url;s.onload=resolve;s.onerror=()=>reject(Error("Could not load: "+url));document.head.appendChild(s)})}
+async function libs(){
+ if(window.ort&&window.createPiperPhonemize)return;
+ set("aiStatus","Downloading speech runtime: ONNX and Telugu phonemizer (first use requires internet).");
+ await script(CDN+"vendor/ort/ort.wasm.min.js");await script(CDN+"vendor/phonemize/piper_phonemize.js");
+ window.ort.env.wasm.wasmPaths=CDN+"vendor/ort/";window.ort.env.wasm.numThreads=1;
+}
+async function phonemizer(){
+ if(phonemizerPromise)return phonemizerPromise;
+ phonemizerPromise=window.createPiperPhonemize({
+  locateFile:name=>CDN+"vendor/phonemize/"+name,
+  print:line=>{try{phOutput.push(JSON.parse(line))}catch{}},
+  printErr:line=>console.warn("Phonemizer:",line)
+ });
+ return phonemizerPromise;
+}
+async function engine(name){
+ if(aiEngine&&aiName===name)return aiEngine;
+ const base=name==="maya"?"maya/medium/te_IN-maya-medium":"padmavathi/medium/te_IN-padmavathi-medium";
+ const path=MODEL+base;set("aiStatus","Downloading Telugu "+name+" model (~63 MB). Do not close the page.");
+ const [r,c]=await Promise.all([fetch(path+".onnx"),fetch(path+".onnx.json")]);
+ if(!r.ok||!c.ok)throw Error("Piper model download failed: "+r.status+" / "+c.status);
+ const [buf,cfg]=await Promise.all([r.arrayBuffer(),c.json()]);
+ const session=await window.ort.InferenceSession.create(new Uint8Array(buf),{executionProviders:["wasm"]});
+ if(aiEngine){try{await aiEngine.session.release()}catch{}}
+ aiName=name;aiEngine={session,cfg,rate:cfg.audio?.sample_rate||22050};return aiEngine;
+}
+async function inferSpeech(chunk,e){
+ const mod=await phonemizer();phOutput=[];
+ const rc=mod.callMain(["--espeak_data","/espeak-ng-data","--language",e.cfg.espeak?.voice||"te","--input",JSON.stringify([{text:chunk}])]);
+ if(rc!==0||!phOutput.length||!phOutput[0].phoneme_ids)throw Error("Telugu phonemizer did not return phoneme IDs.");
+ const ids=phOutput[0].phoneme_ids;
+ if(!ids.length)throw Error("No phonemes for this text.");
+ const feed={
+  input:new window.ort.Tensor("int64",BigInt64Array.from(ids.map(BigInt)),[1,ids.length]),
+  input_lengths:new window.ort.Tensor("int64",BigInt64Array.from([BigInt(ids.length)]),[1]),
+  scales:new window.ort.Tensor("float32",new Float32Array([0.667,1,0.8]),[3])
+ };
+ const result=await e.session.run(feed);const key=Object.keys(result)[0];return result.output?.data||result[key].data;
+}
+function wavHeader(samples,rate){
+ const b=new ArrayBuffer(44),v=new DataView(b),w=(p,s)=>{for(let j=0;j<s.length;j++)v.setUint8(p+j,s.charCodeAt(j))};
+ w(0,"RIFF");v.setUint32(4,36+samples*2,true);w(8,"WAVE");w(12,"fmt ");
+ v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+ v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
+ w(36,"data");v.setUint32(40,samples*2,true);return b;
+}
+function toPcm(samples){const b=new ArrayBuffer(samples.length*2),v=new DataView(b);for(let i=0;i<samples.length;i++)v.setInt16(i*2,Math.max(-1,Math.min(1,samples[i]))*32767,true);return b}
+$("aiCancel").onclick=()=>{aiCancelled=true;set("aiStatus","Cancel requested. The current chunk may finish first.")};
+$("aiMake").onclick=async()=>{
+ if(!text()){set("aiStatus","Enter Telugu text first.","error");return}
+ if(text().length>18000){set("aiStatus","Very long input. Split into smaller scripts (up to 18,000 characters each) to avoid phone memory issues.","error");return}
+ aiCancelled=false;$("aiMake").disabled=true;$("aiAudio").hidden=true;$("aiDownload").hidden=true;$("aiProgress").value=0;
+ try{
+  if("serviceWorker" in navigator)await navigator.serviceWorker.ready;
+  await libs();const e=await engine($("model").value);await phonemizer();
+  const parts=splitText(text(),125),pcmParts=[];let total=0;
+  for(let i=0;i<parts.length;i++){
+   if(aiCancelled)throw Error("Cancelled between parts; no incomplete WAV was exported.");
+   set("aiStatus","Local AI inference: "+(i+1)+"/"+parts.length+" parts. Keep screen awake. Audio remains on this device.");
+   const samples=await inferSpeech(parts[i],e);pcmParts.push(toPcm(samples));total+=samples.length;
+   if(i!==parts.length-1){pcmParts.push(new Uint8Array(Math.round(e.rate*.16)*2));total+=Math.round(e.rate*.16)}
+   $("aiProgress").value=Math.round(100*(i+1)/parts.length);
+   await new Promise(r=>setTimeout(r,20));
+  }
+  const blob=new Blob([wavHeader(total,e.rate),...pcmParts],{type:"audio/wav"});
+  if(aiUrl)URL.revokeObjectURL(aiUrl);aiUrl=URL.createObjectURL(blob);
+  $("aiAudio").src=aiUrl;$("aiAudio").hidden=false;$("aiDownload").href=aiUrl;$("aiDownload").hidden=false;
+  set("aiStatus","Generated locally: "+Math.round(total/e.rate)+" seconds, WAV "+(blob.size/1048576).toFixed(1)+" MB. Play or download below.","ok");
+ }catch(err){set("aiStatus","AI generation failed: "+(err?.message||String(err))+"\nTry Device Voice above, or check network/storage/phone RAM.","error")}
+ finally{$("aiMake").disabled=false}
+};
+$("recStart").onclick=async()=>{
+ if(!navigator.mediaDevices?.getUserMedia){set("recStatus","Microphone recording unavailable. HTTPS browser required.","error");return}
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+  recChunks=[];recording=new MediaRecorder(stream);recording.ondataavailable=e=>{if(e.data.size)recChunks.push(e.data)};
+  recording.onstop=()=>{
+   const blob=new Blob(recChunks,{type:recording.mimeType||"audio/webm"});
+   if(recUrl)URL.revokeObjectURL(recUrl);recUrl=URL.createObjectURL(blob);
+   $("recAudio").src=recUrl;$("recAudio").hidden=false;
+   $("recDownload").href=recUrl;$("recDownload").download="my-original-voice."+(blob.type.includes("mp4")?"m4a":"webm");$("recDownload").hidden=false;
+   set("recStatus","Saved YOUR ORIGINAL recording. This is not cloned audio.","ok");
+   stream?.getTracks().forEach(t=>t.stop());$("recStart").disabled=false;$("recStop").disabled=true;
+  };
+  recording.start();$("recStart").disabled=true;$("recStop").disabled=false;
+  set("recStatus","Recording your microphone locally. Tap Stop to finish.");
+ }catch(err){set("recStatus","Cannot record: "+(err?.message||String(err)),"error")}
+};
+$("recStop").onclick=()=>{if(recording?.state==="recording")recording.stop()};
+if("serviceWorker" in navigator&&location.protocol==="https:"){
+ navigator.serviceWorker.register("./sw.js").then(()=>{ $("swStatus").textContent="page cache enabled (model cache depends on storage and download)" }).catch(e=>{$("swStatus").textContent="cache unavailable: "+e.message});
+}else $("swStatus").textContent="requires HTTPS and service workers";
+})();
+</script>
+</body></html>
