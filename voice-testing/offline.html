@@ -60,7 +60,9 @@ small,.mini{font-size:12px;color:var(--dim)}a{color:#98caff}.dl{display:block;ma
 <option value="padmavathi">Padmavathi — Telugu (CC BY 4.0)</option>
 <option value="maya">Maya — Telugu (check individual dataset terms)</option>
 </select>
-<button id="aiMake" class="primary" type="button">Generate local AI voice → WAV</button>
+<button id="aiInstall" class="secondary" type="button" style="width:100%">⬇ 1. Install offline Telugu AI model (first time online)</button>
+<div id="installStatus" class="status" role="status">First setup downloads approximately 95 MB of Telugu model and runtime. Keep the page open; this does not clone your voice.</div>
+<button id="aiMake" class="primary" type="button">▶ 2. Generate local AI voice → WAV</button>
 <button id="aiCancel" type="button">Cancel between parts</button>
 <progress id="aiProgress" class="progress" value="0" max="100"></progress>
 <div id="aiStatus" class="status" role="status">Not tested on your phone yet. First use requires internet and storage. Try with one or two short Telugu sentences first.</div>
@@ -68,7 +70,7 @@ small,.mini{font-size:12px;color:var(--dim)}a{color:#98caff}.dl{display:block;ma
 <a id="aiDownload" class="dl" download="telugu-local-ai.wav" hidden>Download generated WAV</a>
 <p class="mini">AI inference can be slow or fail due to memory or WebAssembly support. This is <strong>experimental</strong>, not a verified 2 GB RAM solution. For long text, keep the screen open; mobile browsers may stop background tasks. Downloaded voices may be removed by browser storage cleanup.</p>
 <details><summary>Model / licensing / limitations</summary>
-<p class="mini">Padmavathi model: <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/te/te_IN/padmavathi/medium" target="_blank" rel="noopener">rhasspy/piper-voices</a>; its dataset is CC BY 4.0. Inference depends on third-party Piper ONNX, espeak-ng WASM and onnxruntime-web. The model files are streamed to your browser; on this Cloudflare site the model download is proxied through a Worker to avoid cross-origin errors. Use only voices you are entitled to use.</p></details>
+<p class="mini">Padmavathi model: <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/te/te_IN/padmavathi/medium" target="_blank" rel="noopener">rhasspy/piper-voices</a>; its dataset is CC BY 4.0. Inference depends on third-party Piper ONNX, espeak-ng WASM and onnxruntime-web. The model files are streamed to your browser; some hosts may not proxy model downloads, so cross-origin restrictions can prevent installation. Offline generation must be tested on your phone. Use only voices you are entitled to use.</p></details>
 </section>
 <section class="card">
 <h2>4. Own voice sample recording</h2>
@@ -79,7 +81,7 @@ small,.mini{font-size:12px;color:var(--dim)}a{color:#98caff}.dl{display:block;ma
 </section>
 <section class="card"><h2>5. Voice cloning status</h2>
 <p class="note">మీ screenshotలోని “clone server returned an error” సమస్య పరిష్కారమైందని ఇక్కడ ప్రకటించడం లేదు. Public GPU voice cloning ఇంకా అందుబాటులో లేదు. మీ వాయిస్‌ను ఇతరులు అనుమతి లేకుండా క్లోన్ చేయకూడదు.</p>
-<p><a href="./index.html">Previous cloud-cloning test (experimental)</a></p>
+<p><a href="./online.html">Previous cloud-cloning test (experimental)</a></p>
 </section>
 <footer>Telugu Voice Studio • Testing only • Device voices depend on OS / installed languages • <span id="swStatus">Offline page cache: checking</span></footer>
 </main>
@@ -140,6 +142,44 @@ $("stop").onclick=()=>{++runId;running=false;synth?.cancel();set("deviceStatus",
 const CDN="https://cdn.jsdelivr.net/gh/piper-tts/piper-tts.github.io@main/";
 const MODEL=location.hostname.endsWith(".workers.dev")?"/models/":"https://huggingface.co/rhasspy/piper-voices/resolve/main/te/te_IN/";
 let phModule=null,phOutput=[],cachedEngine=null,phonemizerPromise=null;
+const OFFLINE_CACHE="telugu-voice-local-v1";
+function offlineAssets(name){
+  const base=name==="maya"?"maya/medium/te_IN-maya-medium":"padmavathi/medium/te_IN-padmavathi-medium";
+  return [
+    CDN+"vendor/ort/ort.wasm.min.js",
+    CDN+"vendor/ort/ort-wasm-simd.wasm",
+    CDN+"vendor/ort/ort-wasm.wasm",
+    CDN+"vendor/phonemize/piper_phonemize.js",
+    CDN+"vendor/phonemize/piper_phonemize.wasm",
+    CDN+"vendor/phonemize/piper_phonemize.data",
+    MODEL+base+".onnx.json",MODEL+base+".onnx"
+  ];
+}
+async function savedOrNetwork(url){
+  try{const c=await caches.open(OFFLINE_CACHE);const hit=await c.match(url);if(hit)return hit;}catch(e){}
+  return fetch(url);
+}
+$("aiInstall").onclick=async()=>{
+  const b=$("aiInstall");b.disabled=true;
+  try{
+    if(!navigator.onLine)throw Error("Connect to the internet for the first download");
+    if(!("caches" in window)||!("serviceWorker" in navigator))throw Error("Offline cache unavailable. Use Chrome over HTTPS.");
+    await navigator.serviceWorker.ready;
+    if(navigator.storage?.persist)try{await navigator.storage.persist()}catch(e){}
+    const c=await caches.open(OFFLINE_CACHE), assets=offlineAssets($("model").value);
+    for(let i=0;i<assets.length;i++){
+      const url=assets[i];
+      $("installStatus").textContent="Downloading "+(i+1)+"/"+assets.length+": "+(url.endsWith(".onnx")?"Telugu model ~63.5 MB":url.split("/").pop());
+      if(await c.match(url))continue;
+      const res=await fetch(url);
+      if(!res.ok)throw Error("HTTP "+res.status+" from "+url);
+      await c.put(url,res.clone());
+    }
+    $("installStatus").textContent="MODEL DOWNLOADED. Reload this page once, turn off mobile data/Wi-Fi, then Generate local AI → WAV. Storage cleanup may erase cached files.";
+  }catch(err){
+    $("installStatus").textContent="Download failed — offline mode NOT installed: "+(err?.message||String(err))+". Retry when online.";
+  }finally{b.disabled=false;}
+};
 function script(url){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=url;s.onload=resolve;s.onerror=()=>reject(Error("Could not load: "+url));document.head.appendChild(s)})}
 async function libs(){
  if(window.ort&&window.createPiperPhonemize)return;
@@ -160,7 +200,7 @@ async function engine(name){
  if(aiEngine&&aiName===name)return aiEngine;
  const base=name==="maya"?"maya/medium/te_IN-maya-medium":"padmavathi/medium/te_IN-padmavathi-medium";
  const path=MODEL+base;set("aiStatus","Downloading Telugu "+name+" model (~63 MB). Do not close the page.");
- const [r,c]=await Promise.all([fetch(path+".onnx"),fetch(path+".onnx.json")]);
+ const [r,c]=await Promise.all([savedOrNetwork(path+".onnx"),savedOrNetwork(path+".onnx.json")]);
  if(!r.ok||!c.ok)throw Error("Piper model download failed: "+r.status+" / "+c.status);
  const [buf,cfg]=await Promise.all([r.arrayBuffer(),c.json()]);
  const session=await window.ort.InferenceSession.create(new Uint8Array(buf),{executionProviders:["wasm"]});
