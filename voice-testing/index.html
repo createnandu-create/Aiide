@@ -744,19 +744,44 @@ if ('speechSynthesis' in window) speechSynthesis.addEventListener('voiceschanged
 $('lang').addEventListener('change', refreshDeviceVoices);
 $('txt').addEventListener('input', refreshDeviceVoices);
 $('auto').addEventListener('change', refreshDeviceVoices);
+let deviceRunId = 0;
 $('deviceRead').onclick = () => {
   if (generationController) { $('deviceStatus').textContent = 'Cancel online generation before device reading.'; return; }
   const v = deviceVoices[Number($('deviceVoice').value)], t = $('txt').value.trim();
   if (!v || !t) { $('deviceStatus').textContent = 'Enter text and select an available voice.'; return; }
-  if (!navigator.onLine && !v.localService) { $('deviceStatus').textContent = 'This selected voice needs internet. Choose a Local voice.'; return; }
-  player.pause(); speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(t); deviceUtterance = u; u.voice = v; u.lang = v.lang; u.rate = Number($('rate').value);
-  u.onstart = () => { $('deviceStatus').textContent = 'Reading with ' + v.name + ' (device voice, not a clone).'; };
-  u.onend = () => { if (deviceUtterance === u) { $('deviceStatus').textContent = 'Reading finished.'; deviceUtterance = null; } };
-  u.onerror = e => { if (deviceUtterance === u) $('deviceStatus').textContent = 'Device speech error: ' + e.error + '. Check installed voice data and media volume.'; };
-  speechSynthesis.speak(u);
+  if (!navigator.onLine && !v.localService) { $('deviceStatus').textContent = 'This voice needs internet. Choose a Local voice.'; return; }
+  // Small utterances avoid mobile browser limits on very long SpeechSynthesisUtterance texts.
+  const chunks = splitText(t, 170);
+  const run = ++deviceRunId;
+  player.pause();
+  speechSynthesis.cancel();
+  let nextIndex = 0;
+  const speakNext = () => {
+    if (run !== deviceRunId) return;
+    if (nextIndex >= chunks.length) {
+      deviceUtterance = null;
+      $('deviceStatus').textContent = 'Device reading finished: ' + chunks.length + ' parts.';
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(chunks[nextIndex]);
+    deviceUtterance = u;
+    u.voice = v; u.lang = v.lang; u.rate = Number($('rate').value);
+    u.onstart = () => { if (run === deviceRunId) $('deviceStatus').textContent =
+      'Device voice (not a clone) — part ' + (nextIndex+1) + ' / ' + chunks.length + ': ' + v.name; };
+    u.onend = () => { if (run === deviceRunId) { nextIndex++; speakNext(); } };
+    u.onerror = e => { if (run === deviceRunId) {
+      deviceUtterance = null; $('deviceStatus').textContent = 'Device TTS stopped at part ' +
+      (nextIndex+1) + ': ' + e.error + '. Check installed voice data, app focus, and media volume.'; } };
+    speechSynthesis.speak(u);
+  };
+  speakNext();
 };
-$('deviceStop').onclick = () => { deviceUtterance = null; if ('speechSynthesis' in window) speechSynthesis.cancel(); $('deviceStatus').textContent = 'Stopped.'; };
+$('deviceStop').onclick = () => {
+  deviceRunId++;
+  deviceUtterance = null;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  $('deviceStatus').textContent = 'Stopped.';
+};
 refreshDeviceVoices();
 const clonePresets = {
  indic:['https://ai4bharat-indicf5.hf.space','https://huggingface.co/spaces/ai4bharat/IndicF5'],
