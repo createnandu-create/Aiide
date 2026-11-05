@@ -2,7 +2,7 @@ name: End-to-end offline Telugu WAV browser inference
 on:
   push:
     branches: [telugu-voice-testing]
-    paths: ['.github/workflows/verify-offline-inference.yml']
+    paths: ['.github/workflows/verify-offline-inference.yml', 'voice-testing/offline.html']
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,6 +30,8 @@ jobs:
               page.on('pageerror',lambda error: print('PAGE ERROR:',str(error)))
               page.goto(url,wait_until='domcontentloaded',timeout=60000)
               print('PAGE TITLE:',page.title())
+              print('AI section before optional Android:', page.locator('#offline-ai').evaluate('(e) => e.compareDocumentPosition(document.querySelector(\'#devicePlay\')) & Node.DOCUMENT_POSITION_FOLLOWING') != 0)
+              assert page.locator('#offline-ai').evaluate('(e) => e.compareDocumentPosition(document.querySelector(\'#devicePlay\')) & Node.DOCUMENT_POSITION_FOLLOWING') != 0
               page.locator('#aiInstall').click()
               page.wait_for_function("""() => {
                 const s=document.querySelector('#installStatus')?.textContent||'';
