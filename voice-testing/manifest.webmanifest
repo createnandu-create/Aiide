@@ -1,0 +1,12 @@
+{
+  "id": "./offline.html",
+  "name": "Telugu Voice Studio — Local Test",
+  "short_name": "Telugu Voice",
+  "description": "Free Telugu device TTS and experimental Piper local AI WAV test; not voice cloning",
+  "start_url": "./offline.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101725",
+  "theme_color": "#101725",
+  "lang": "te"
+}
