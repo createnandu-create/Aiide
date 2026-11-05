@@ -191,6 +191,8 @@
     <h2>Text</h2>
     <textarea id="txt" placeholder="Type or paste text here">నమస్కారం! ఇది తెలుగు వాయిస్ పరీక్ష. మీరు ఎలా ఉన్నారు? ఈ రోజు వాతావరణం చాలా బాగుంది.</textarea>
     <div class="meta"><span id="count">0 characters</span><span id="detected"></span><button id="sample" type="button" class="chip">Insert sample</button></div>
+    <div id="longPlan" class="hint" role="status" style="margin-top:10px;line-height:1.6"></div>
+    <div class="hint" style="margin-top:5px">10–30 minute audio needs a long script and multiple successful requests. Free AI servers have limits; output duration is not guaranteed.</div>
   </div>
 
   <div class="card" style="--d:2">
@@ -360,8 +362,17 @@ $('lang').addEventListener('change', () => { fillSpeakers(); refreshNote(); });
 $('temp').addEventListener('input', () => { $('tempO').textContent = $('temp').value; });
 $('gap').addEventListener('input', () => { $('gapO').textContent = (+$('gap').value).toFixed(2) + ' s'; });
 
+function updateLongPlan() {
+  const t = $('txt').value.trim();
+  const words = (t.match(/\\S+/g) || []).length;
+  const low = Math.round(words / 150), high = Math.round(words / 110);
+  const size = engine === 'clone' ? 150 : engine === 'studio' ? 180 : 130;
+  const count = t ? splitText(t, size).length : 0;
+  $('longPlan').textContent = t ? `Estimated ${low}–${high} minutes at 110–150 words/min; ${count} AI request(s) in selected mode. This is an estimate, not a guarantee.` : 'Enter text to estimate speech length and AI requests.';
+}
 function onText() {
   $('count').textContent = $('txt').value.length + ' characters';
+  updateLongPlan();
   if ($('auto').checked) {
     const d = detectLang($('txt').value);
     if (d && d !== $('lang').value && byId(d)) { $('lang').value = d; fillSpeakers(); refreshNote(); }
