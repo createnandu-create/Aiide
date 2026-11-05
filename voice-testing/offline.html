@@ -68,7 +68,7 @@ small,.mini{font-size:12px;color:var(--dim)}a{color:#98caff}.dl{display:block;ma
 <a id="aiDownload" class="dl" download="telugu-local-ai.wav" hidden>Download generated WAV</a>
 <p class="mini">AI inference can be slow or fail due to memory or WebAssembly support. This is <strong>experimental</strong>, not a verified 2 GB RAM solution. For long text, keep the screen open; mobile browsers may stop background tasks. Downloaded voices may be removed by browser storage cleanup.</p>
 <details><summary>Model / licensing / limitations</summary>
-<p class="mini">Padmavathi model: <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/te/te_IN/padmavathi/medium" target="_blank" rel="noopener">rhasspy/piper-voices</a>; its dataset is CC BY 4.0. Inference depends on third-party Piper ONNX, espeak-ng WASM and onnxruntime-web. The files are downloaded to your browser, not the app owner's server. Use only voices you are entitled to use.</p></details>
+<p class="mini">Padmavathi model: <a href="https://huggingface.co/rhasspy/piper-voices/tree/main/te/te_IN/padmavathi/medium" target="_blank" rel="noopener">rhasspy/piper-voices</a>; its dataset is CC BY 4.0. Inference depends on third-party Piper ONNX, espeak-ng WASM and onnxruntime-web. The model files are streamed to your browser; on this Cloudflare site the model download is proxied through a Worker to avoid cross-origin errors. Use only voices you are entitled to use.</p></details>
 </section>
 <section class="card">
 <h2>4. Own voice sample recording</h2>
@@ -138,7 +138,7 @@ $("pause").onclick=()=>{if(synth&&running){synth.pause();set("deviceStatus","Pau
 $("resume").onclick=()=>{if(synth){synth.resume();set("deviceStatus","Resumed.")}};
 $("stop").onclick=()=>{++runId;running=false;synth?.cancel();set("deviceStatus","Stopped.")};
 const CDN="https://cdn.jsdelivr.net/gh/piper-tts/piper-tts.github.io@main/";
-const MODEL="https://huggingface.co/rhasspy/piper-voices/resolve/main/te/te_IN/";
+const MODEL=location.hostname.endsWith(".workers.dev")?"/models/":"https://huggingface.co/rhasspy/piper-voices/resolve/main/te/te_IN/";
 let phModule=null,phOutput=[],cachedEngine=null,phonemizerPromise=null;
 function script(url){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=url;s.onload=resolve;s.onerror=()=>reject(Error("Could not load: "+url));document.head.appendChild(s)})}
 async function libs(){
