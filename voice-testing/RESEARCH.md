@@ -41,3 +41,23 @@ These are a focused shortlist, not a claim to have found every model or ranked a
 Original visual design retained. Explicit model selection, check-server action, original demo links, input validation, local device speech, cancellation/timeouts and WAV export. Clone failure never falls back to an unrelated voice. Noise reduction is off by default to preserve reference timbre. Tokens are session-only and sent only to configured HF hosts. Returned audio URLs are resolved against the server origin. Sample-based Maya cloning uses the clip transcript's detected language and the requested text language.
 
 Offline device reading uses installed system voices, not cloning. Model weights are not included. Full offline cloning needs a separate inference runtime and suitable hardware; this web preview does not provide it.
+
+## Follow-up investigation: Google 3.8 and deployment (2026-11-05)
+
+Google's September 2026 release includes **Gemini 3.8 Flash TTS / Flash-Lite TTS**, with consent-verified **Voice Replication** APIs and prebuilt narration voices. This is newer than earlier Gemini 2.5 narration-only examples. However **Google says AI Studio Voice Replication is not available in India**, among other regions. Do not imply that the user can clone voice with the pasted `gemini-flash-latest:generateContent` text example. API availability and account eligibility must be checked without bypassing geographic restrictions.
+
+For dependable prebuilt Telugu narration, this branch adds a *separate* `voice-testing/api/tts.js` server-side Gemini 2.5 Flash Preview TTS adapter and a `Google TTS` HTML tab. It must be deployed to a compatible serverless host with a newly rotated secret `GEMINI_API_KEY` environment variable. The HTML has no API key. Until configured, this mode intentionally reports not configured; no Google generation success is claimed.
+
+The original user-shared key appeared in a chat and must be revoked. This branch has NOT copied it into code, a commit, or a request. The connected Vercel account returned no team or Git-linked project, so an actual Vercel production deployment and live cloud inference test were not possible.
+
+The Device voice mode now splits a long script into small chunks for mobile TTS reading when a suitable system voice is available. This is not downloadable cloned audio and foreground browser behavior can vary.
+
+Hosting comparison: GitHub Pages/Cloudflare Pages can publish static HTML, but cannot run Python/CUDA GPU inference. Vercel Hobby permits serverless code and is subject to strict usage quotas/noncommercial limitations. WordPress.com Free restricts custom JavaScript and cannot host this GPU model. Dedicated clone inference still needs a running GPU instance, consent procedures, per-user rate limits, and quota/cost controls before open public launch.
+
+Sources:
+- https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-8-text-to-speech/
+- https://ai.google.dev/gemini-api/docs/speech-generation
+- https://ai.google.dev/gemini-api/docs/rate-limits
+- https://huggingface.co/docs/hub/spaces-zerogpu
+- https://vercel.com/docs/plans/hobby
+- https://wordpress.com/support/code/
