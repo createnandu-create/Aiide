@@ -23,6 +23,18 @@ self.addEventListener("fetch",event=>{
  if(!same&&!model&&!libs)return;
  event.respondWith((async()=>{
   const cache=await caches.open(CACHE);
+  const isPage=same&&(event.request.mode==="navigate"||url.pathname.endsWith(".webmanifest"));
+  if(isPage){
+   try{
+    const fresh=await fetch(event.request);
+    if(fresh.ok){try{await cache.put(event.request,fresh.clone())}catch(e){}}
+    return fresh;
+   }catch(e){
+    const cached=await cache.match(event.request)||await cache.match("./offline.html");
+    if(cached)return cached;
+    throw e;
+   }
+  }
   const found=await cache.match(event.request);if(found)return found;
   const response=await fetch(event.request);
   if(response.ok){try{await cache.put(event.request,response.clone())}catch(e){console.warn("Cache full or unavailable:",e)}}
