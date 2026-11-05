@@ -37,8 +37,8 @@
   .card { background:var(--card); border-radius:var(--r-lg); padding:16px; margin-bottom:14px; box-shadow:var(--shadow); animation:fadeUp .65s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--d, 0) * 110ms + 350ms); transition:transform .3s, box-shadow .3s; }
   .card:hover { transform:translateY(-2px); }
   .card h2 { font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--mut); margin:0 0 10px; font-weight:700; }
-  .seg { position:relative; display:grid; grid-template-columns:repeat(3, 1fr); background:var(--fill); border-radius:14px; padding:3px; margin-bottom:14px; }
-  .seg i { position:absolute; top:3px; bottom:3px; left:3px; width:calc((100% - 6px) / 3); background:var(--card); border-radius:11px; box-shadow:0 1px 4px rgba(0,0,0,.18); transition:transform .45s cubic-bezier(.3,1.4,.5,1); }
+  .seg { position:relative; display:grid; grid-template-columns:repeat(4, 1fr); background:var(--fill); border-radius:14px; padding:3px; margin-bottom:14px; }
+  .seg i { position:absolute; top:3px; bottom:3px; left:3px; width:calc((100% - 6px) / 4); background:var(--card); border-radius:11px; box-shadow:0 1px 4px rgba(0,0,0,.18); transition:transform .45s cubic-bezier(.3,1.4,.5,1); }
   .seg button { position:relative; z-index:1; margin:0; padding:10px 4px; background:none; border:0; color:var(--mut); font-size:.88rem; font-weight:600; border-radius:11px; transition:color .25s, transform .2s; }
   .seg button.on { color:var(--ink); } .seg button:active { transform:scale(.94); }
   .panel-in { animation:fadeUp .45s cubic-bezier(.2,.8,.2,1) both; }
@@ -118,6 +118,7 @@
       <button type="button" data-e="natural" class="on">Natural</button>
       <button type="button" data-e="studio">Studio</button>
       <button type="button" data-e="clone">My voice</button>
+       <button type="button" data-e="google">Google TTS</button>
     </div>
     <div class="group" id="langGroup">
       <div class="rowf"><span>Language</span><select id="lang"></select></div>
@@ -144,6 +145,15 @@
       </div>
     </div>
 
+    <div id="pGoogle" style="margin-top:12px" hidden>
+      <div class="group"><div class="rowf"><span>Google voice</span><select id="googleVoice">
+        <option value="Kore">Kore</option><option value="Puck">Puck</option><option value="Aoede">Aoede</option>
+        <option value="Charon">Charon</option><option value="Leda">Leda</option><option value="Orus">Orus</option>
+      </select></div></div>
+      <button id="googleCheck" type="button" class="btn alt">Check Google backend</button>
+      <div class="hint" id="googleStatus" aria-live="polite">This mode needs a deployed server and a protected Google key. It cannot run from a raw HTML preview.</div>
+      <span class="hint">Built-in Telugu narration, NOT voice cloning. The site owner configures the key once on the server. Google has free quotas, not unlimited usage.</span>
+    </div>
     <div id="pClone" style="margin-top:12px" hidden>
       <div class="group"><div class="rowf"><span>Clone model</span><select id="cloneModel"><option value="indic">IndicF5 · official GPU demo</option><option value="maya">Maya 2 Native · GPU demo</option><option value="community">IndicF5 · community CPU</option><option value="custom">Custom IndicF5 server</option></select></div></div>
       <div class="two"><button id="checkServer" class="btn alt" type="button">Check server</button><a id="openDemo" class="btn alt" target="_blank" rel="noopener" href="https://huggingface.co/spaces/ai4bharat/IndicF5">Open original demo ↗</a></div>
@@ -324,10 +334,10 @@ function detectLang(t) {
 // ---------- engine ----------
 let engine = 'natural';
 function setEngine(e) {
-  engine = e; const idx = { natural:0, studio:1, clone:2 }[e];
+  engine = e; const idx = { natural:0, studio:1, clone:2, google:3 }[e];
   $('segI').style.transform = `translateX(${idx * 100}%)`;
   document.querySelectorAll('#seg button').forEach(b => b.classList.toggle('on', b.dataset.e === e));
-  [['pNatural','natural'],['pStudio','studio'],['pClone','clone']].forEach(([id, k]) => { const el = $(id), show = e === k; if (show && el.hidden) { el.hidden = false; el.classList.remove('panel-in'); void el.offsetWidth; el.classList.add('panel-in'); } else if (!show) el.hidden = true; });
+  [['pNatural','natural'],['pStudio','studio'],['pClone','clone'],['pGoogle','google']].forEach(([id, k]) => { const el = $(id), show = e === k; if (show && el.hidden) { el.hidden = false; el.classList.remove('panel-in'); void el.offsetWidth; el.classList.add('panel-in'); } else if (!show) el.hidden = true; });
   $('langGroup').hidden = e === 'clone';
   refreshNote();
 }
@@ -342,7 +352,8 @@ function refreshNote() {
   const l = byId($('lang').value); let m = '';
   if (engine === 'natural' && !l.sv) m = 'Natural voices do not cover ' + l.n.split(' ')[0] + '. Studio will be used for it automatically.';
   if (engine === 'studio' && !l.pa) m = 'Studio voices do not cover ' + l.n.split(' ')[0] + '. Natural will be used for it automatically.';
-  if (engine === 'clone') m = 'Online only: sends your saved clip and text to the configured server. A failed clone will not be replaced with another voice. Use a short clip and its exact transcript.';
+  if (engine === 'google') m = 'Google narration uses a protected backend and a built-in voice, NOT your cloned voice.';
+   if (engine === 'clone') m = 'Online only: sends your saved clip and text to the configured server. A failed clone will not be replaced with another voice. Use a short clip and its exact transcript.';
   $('engineNote').textContent = m;
 }
 $('lang').addEventListener('change', () => { fillSpeakers(); refreshNote(); });
@@ -392,6 +403,15 @@ function refreshDesc() { if (!descTouched) $('desc').value = buildDesc(); }
 ['speaker','style','pace','pitch'].forEach(id => $(id).addEventListener('change', refreshDesc));
 $('desc').addEventListener('input', () => { descTouched = true; });
 fillSpeakers(); setEngine('natural'); onText();
+$('googleCheck').onclick = async () => {
+ const el=$('googleStatus'); el.textContent='Checking this website backend…';
+ try {
+  const r=await fetch('/api/tts', {cache:'no-store'});
+  const j=await r.json();
+  el.textContent=j.configured ? 'Server key is configured. Speech generation must still be tested.' :
+    'Google backend not configured. The owner must add a protected server-side key after rotating the exposed one.';
+ } catch (e) {el.textContent='No Google backend found on this HTML preview. Use a serverless deployment.';}
+};
 
 function splitText(t, max) {
   const sentences = t.replace(/\r/g, '').split(/(?<=[.!?।॥\n])\s*/).map(s => s.trim()).filter(Boolean), out = []; let cur = '';
@@ -483,6 +503,7 @@ async function runApi(base, apiName, data) {
 function explain(which, msg) {
   if (msg === 'CANCELLED') return 'Generation cancelled.';
   if (msg === 'TIMEOUT') return 'The server did not finish within 3 minutes. Try a shorter sentence or another running server.';
+  if (which === 'google') return msg;
   const nm = { natural:'Natural', studio:'Studio', clone:'My voice' }[which];
   if (/^OFFLINE:/.test(msg)) return `The ${nm} server is not answering (${msg.slice(8)}). It may be asleep or offline.`;
   if (/^DETAIL:/.test(msg)) { const d = msg.slice(7); return /quota|GPU|limit|exceeded/i.test(d) ? `The ${nm} server's free GPU quota is used up. Open the original demo to sign in, or wait for quota renewal. A token does not guarantee additional quota.` : `The ${nm} server reported: ${d}`; }
@@ -633,7 +654,15 @@ function loadOutput(h) {
 // ---------- generation ----------
 async function synthParts(which, parts, ctx, onPart) {
   const pcms = []; let rate = 24000, base, call; const l = ctx.lang;
-  if (which === 'natural') {
+  if (which === 'google') {
+    base = location.origin;
+    call = async t => {
+      const r = await netFetch('/api/tts', {method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:t, voice:$('googleVoice').value})});
+      if (!r.ok) { let j = {}; try { j = await r.json(); } catch {} throw new Error(j.error || ('Google TTS HTTP '+r.status)); }
+      return r.blob();
+    };
+  } else if (which === 'natural') {
     base = $('baseN').value.trim().replace(/\/+$/, ''); const tag = $('emotion').value ? ' <' + $('emotion').value + '>' : '';
     call = t => runApi(base, 'generate_speech', [l.sv, $('gender').value, t + tag, parseFloat($('temp').value), 0.8, 1.1, 2048]);
   } else if (which === 'studio') {
@@ -649,7 +678,7 @@ async function synthParts(which, parts, ctx, onPart) {
   }
   for (let i = 0; i < parts.length; i++) {
     onPart(i, parts.length);
-    const blob = await withRetry(async () => { const f = await call(parts[i]); const got = await fetchAudio(base, f); if (!got) throw new Error('The audio was made but its file could not be downloaded from the server.'); return got; }, which === 'clone' ? 1 : 2);
+    const blob = await withRetry(async () => { const f = await call(parts[i]); if (which === 'google') return f; const got = await fetchAudio(base, f); if (!got) throw new Error('The audio was made but its file could not be downloaded from the server.'); return got; }, which === 'clone' ? 1 : 2);
     dbg(); const d = await decodeToMono(blob); pcms.push(normalize(trimSilence(d.data, d.rate))); rate = d.rate;
     $('bar').style.width = Math.round(((i + 1) / parts.length) * 100) + '%';
   }
@@ -674,7 +703,7 @@ $('go').onclick = async () => {
   $('barWrap').hidden = false; $('bar').style.width = '0';
   say('Starting. The first request may take 1–2 minutes while the server wakes up.', '');
   const ctx = { cloneModel:$('cloneModel').value, desc:$('desc').value.trim() || buildDesc(), voice, lang:useLang };
-  const sizes = { natural:130, studio:180, clone:150 }, names = { natural:'Natural', studio:'Studio', clone:'My voice' };
+  const sizes = { natural:130, studio:180, clone:150, google:400 }, names = { natural:'Natural', studio:'Studio', clone:'My voice', google:'Google TTS' };
   const order = [which];
   if ($('fallback').checked) { if (which === 'natural' && useLang.pa) order.push('studio'); else if (which === 'studio' && useLang.sv) order.push('natural');  }
   let res = null, used = which; const errs = [];
