@@ -1,0 +1,55 @@
+name: End-to-end offline Telugu WAV browser inference
+on:
+  push:
+    branches: [telugu-voice-testing]
+    paths: ['.github/workflows/verify-offline-inference.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install browser test dependencies
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Install local Piper model and generate WAV with network disconnected
+        run: |
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          url='https://telugu-voice-offline-pwa.smartapps-voice.workers.dev/'
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=['--no-sandbox','--disable-dev-shm-usage'])
+              context=browser.new_context(accept_downloads=True)
+              page=context.new_page()
+              page.on('pageerror',lambda error: print('PAGE ERROR:',str(error)))
+              page.goto(url,wait_until='domcontentloaded',timeout=60000)
+              print('PAGE TITLE:',page.title())
+              page.locator('#aiInstall').click()
+              page.wait_for_function("""() => {
+                const s=document.querySelector('#installStatus')?.textContent||'';
+                return s.includes('MODEL DOWNLOADED')||s.includes('Download failed');
+              }""",timeout=290000)
+              install=page.locator('#installStatus').inner_text()
+              print('INSTALL:',install[:600])
+              assert 'MODEL DOWNLOADED' in install, 'Piper model cache setup failed'
+              page.reload(wait_until='domcontentloaded',timeout=30000)
+              page.locator('#text').fill('నమస్కారం! మీరు ఎలా ఉన్నారు?')
+              context.set_offline(True)
+              print('NETWORK OFF')
+              page.locator('#aiMake').click()
+              page.wait_for_function("""() => {
+                const s=document.querySelector('#aiStatus')?.textContent||'';
+                return s.startsWith('Generated locally:')||s.startsWith('AI generation failed:');
+              }""",timeout=260000)
+              result=page.locator('#aiStatus').inner_text()
+              print('RESULT:',result[:900])
+              assert result.startswith('Generated locally:'), 'Offline WAV inference failed'
+              assert page.locator('#aiDownload').get_attribute('href').startswith('blob:'), 'Missing output WAV'
+              browser.close()
+          PY
