@@ -148,8 +148,8 @@ public class ExperimentalModelActivity extends Activity implements TextToSpeech.
       showStatus("Pocket TTS Android Engine unavailable. Install it and a compatible Telugu model pack first.");
       return;
     }
-    if (!POCKET_PACKAGE.equals(tts.getCurrentEngine())) {
-      showStatus("BLOCKED: Android selected a different TTS engine. No fallback permitted.");
+    if (!POCKET_PACKAGE.equals(tts.getDefaultEngine())) {
+      showStatus("BLOCKED: Set Pocket TTS Android Engine as Android's preferred TTS engine; default-engine fallback is not allowed.");
       return;
     }
     Set<Voice> voices = tts.getVoices();
@@ -157,13 +157,15 @@ public class ExperimentalModelActivity extends Activity implements TextToSpeech.
       for (Voice v : voices) {
         if (v.getLocale() != null &&
             "te".equals(v.getLocale().getLanguage()) &&
+            v.getName() != null &&
+            v.getName().startsWith("pravega-te-int8-research::") &&
             !v.isNetworkConnectionRequired()) {
           selectedVoice = v; break;
         }
       }
     }
     if (selectedVoice == null) {
-      showStatus("No offline Telugu voice exposed by Pocket TTS Engine. Import a compatible Telugu model pack in its settings, and reopen this screen.");
+      showStatus("No Pravega-labelled OFFLINE Telugu voice exposed by Pocket TTS Engine. Import the research ZIP from our packer, then import/select a consented reference WAV. Reopen this screen.");
       return;
     }
     // Set language first, then explicit offline voice to avoid resetting selection.
@@ -172,8 +174,8 @@ public class ExperimentalModelActivity extends Activity implements TextToSpeech.
     ready = result == TextToSpeech.SUCCESS;
     play.setEnabled(ready); export.setEnabled(ready && Build.VERSION.SDK_INT >= 29);
     if (ready) {
-      showStatus("Pocket TTS Telugu voice detected: " + selectedVoice.getName() +
-        ". This verifies a LOCAL Telugu engine voice, NOT the underlying model weights. Play a test and verify it is your imported Pravega research pack.");
+      showStatus("Pravega-labelled local Telugu voice detected: " + selectedVoice.getName() +
+        ". Pack ID matches pravega-te-int8-research; actual model weights are not cryptographically verified by Android TTS. Test audio offline.");
     } else showStatus("Could not activate the offline Pocket TTS Telugu voice.");
   }
 
