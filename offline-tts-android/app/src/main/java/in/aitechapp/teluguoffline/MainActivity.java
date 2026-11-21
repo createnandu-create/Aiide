@@ -48,6 +48,8 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     play=button(root,"3. ▶ Speak offline");
     Button stop=button(root,"■ Stop");
     export=button(root,"4. Export WAV to Music folder");
+    Button experimental=button(root,"5. New Voice Models (Lyric / Pravega research)");
+    experimental.setOnClickListener(v->startActivity(new Intent(this,ExperimentalModelActivity.class)));
     status=new TextView(this);status.setTextColor(Color.rgb(164,221,190));status.setTextSize(16);
     status.setPadding(0,22,0,0);status.setText("Checking installed voices...");
     root.addView(status);
